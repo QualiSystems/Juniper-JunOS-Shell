@@ -1,1 +1,1 @@
-# cloudshell-networking-junos
+# cloudshell-networking-juniper-junos
