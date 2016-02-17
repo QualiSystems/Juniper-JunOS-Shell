@@ -1,8 +1,9 @@
 from cloudshell.shell.core.driver_builder_wrapper import DriverFunction
 from cloudshell.networking.juniper.resource_driver.juniper_generic_resource_dirver import juniper_generic_resource_driver
+from cloudshell.networking.resource_driver.networking_generic_resource_dirver import networking_generic_resource_driver
 import cloudshell.networking.juniper.junos
 
-class junos_resource_driver(juniper_generic_resource_driver):
+class junos_resource_driver(networking_generic_resource_driver):
     ATTRIBUTE_MATRIX = {"resource": ["ResourceAddress", "User", "Password", "Enable Password", "Console Server IP Address",
                                    "Console User", "Console Password", "Console Port", "CLI Connection Type",
                                    "SNMP Version", "SNMP Read Community", "SNMP V3 User", "SNMP V3 Password",
@@ -11,40 +12,10 @@ class junos_resource_driver(juniper_generic_resource_driver):
     @DriverFunction(extraMatrixRows=ATTRIBUTE_MATRIX)
     def Init(self, matrixJSON):
         self.handler_name = 'JUNOS'
-        juniper_generic_resource_driver.Init(self, matrixJSON)
+        networking_generic_resource_driver.Init(self, matrixJSON)
         # print self.handler_name
 
 if __name__ == '__main__':
-
-    # data_json = str("""{
-    #         "resource" : {
-    #                 "ResourceAddress": "192.168.28.150",
-    #                 "User": "root",
-    #                 "Password": "Juniper",
-    #                 "CLI Connection Type": "ssh",
-    #                 "Console User": "",
-    #                 "Console Password": "",
-    #                 "Console Server IP Address": "",
-    #                 "ResourceName" : "junos_us",
-    #                 "ResourceFullName" : "Juniper",
-    #                 "Enable Password": "",
-    #                 "Console Port": "",
-    #                 "SNMP Read Community": "public",
-    #                 "SNMP Version": "2",
-    #                 "SNMP V3 Password": "",
-    #                 "SNMP V3 User": "",
-    #                 "SNMP V3 Private Key": "",
-    #                 "Filename": "/tmp/qsoutput.log",
-    #                 "HandlerName": "JUNOS"
-    #             },
-    #         "reservation" : {
-    #                 "Username" : "admin",
-    #                 "Password" : "admin",
-    #                 "Domain" : "Global",
-    #                 "AdminUsername" : "admin",
-    #                 "AdminPassword" : "admin"}
-    #         }""")
-
 
     data_json = str("""{
             "resource" : {
@@ -63,7 +34,9 @@ if __name__ == '__main__':
                     "SNMP Version": "2",
                     "SNMP V3 Password": "",
                     "SNMP V3 User": "",
-                    "SNMP V3 Private Key": ""
+                    "SNMP V3 Private Key": "",
+                    "Filename": "/tmp/qsoutput.log",
+                    "HandlerName": "JUNOS"
                 },
             "reservation" : {
                     "Username" : "admin",
@@ -72,6 +45,34 @@ if __name__ == '__main__':
                     "AdminUsername" : "admin",
                     "AdminPassword" : "admin"}
             }""")
+
+
+    # data_json = str("""{
+    #         "resource" : {
+    #                 "ResourceAddress": "192.168.28.150",
+    #                 "User": "root",
+    #                 "Password": "Juniper",
+    #                 "CLI Connection Type": "ssh",
+    #                 "Console User": "",
+    #                 "Console Password": "",
+    #                 "Console Server IP Address": "",
+    #                 "ResourceName" : "junos_us",
+    #                 "ResourceFullName" : "Juniper",
+    #                 "Enable Password": "",
+    #                 "Console Port": "",
+    #                 "SNMP Read Community": "public",
+    #                 "SNMP Version": "2",
+    #                 "SNMP V3 Password": "",
+    #                 "SNMP V3 User": "",
+    #                 "SNMP V3 Private Key": ""
+    #             },
+    #         "reservation" : {
+    #                 "Username" : "admin",
+    #                 "Password" : "admin",
+    #                 "Domain" : "Global",
+    #                 "AdminUsername" : "admin",
+    #                 "AdminPassword" : "admin"}
+    #         }""")
     # import os
     # os.environ['QS_CONFIG'] = "/home/yar/QualiSystems/Git/TFS/Packages/qualipy/qs_config.ini"
     resource_driver = junos_resource_driver('77', data_json)
