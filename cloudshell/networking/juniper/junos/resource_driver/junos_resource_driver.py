@@ -1,5 +1,6 @@
 from cloudshell.shell.core.driver_builder_wrapper import DriverFunction
 from cloudshell.networking.juniper.resource_driver.juniper_generic_resource_dirver import juniper_generic_resource_driver
+import cloudshell.networking.juniper.junos
 
 class junos_resource_driver(juniper_generic_resource_driver):
     ATTRIBUTE_MATRIX = {"resource": ["ResourceAddress", "User", "Password", "Enable Password", "Console Server IP Address",
@@ -75,7 +76,7 @@ if __name__ == '__main__':
     # os.environ['QS_CONFIG'] = "/home/yar/QualiSystems/Git/TFS/Packages/qualipy/qs_config.ini"
     resource_driver = junos_resource_driver('77', data_json)
     # print(resource_driver._resource_handler._delete_vlans(["vlan-247"]))
-    # print(resource_driver._resource_handler._add_vlans_on_port('ge-0/0/2', ['vlan-247'], 'trunk'))
+    print(resource_driver._resource_handler._add_vlans_on_port('ge-0/0/2', ['vlan-247'], 'trunk'))
     # print(resource_driver._resource_handler._get_ports_for_vlan("vlan-238"))
     # resource_driver.Add_VLAN(data_json, '192.168.28.150/0/1/0/7|192.168.28.150/0/1/0/2', '1022, 1023-1028', "trunk", "")
     # resource_driver.Remove_VLAN(data_json, '192.168.28.150/0/1/0/7|192.168.28.150/0/1/0/2', '1022, 1023-1028', "trunk", "")

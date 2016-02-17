@@ -267,7 +267,6 @@ class JunOS(JuniperBase):
 
     def _get_vlans_for_port(self, port):
         output = self.send_config_command('show interfaces {0}'.format(port))
-        # found_list = re.findall(r'vlan\s+\{\s+members\s+\[\s+([\w\d\s-]+)\s\].+\}', re.sub(r'\n|\r', '', output))
         found_list = re.findall(r'vlan\s*\{\s*members\s*\[*\s*((?:[\w\d-]+\s*)+)\s*\]*\s*;\s*\}',
                                 re.sub(r'\n|\r', '', output))
         if len(found_list) > 0:
@@ -451,7 +450,7 @@ class JunOS(JuniperBase):
         for command, value in command_map.items():
             if command in self._commands_templates:
                 command_template = self._commands_templates[command]
-                prepared_commands.append(ParametersService.getValidateList(command_template, value))
+                prepared_commands.append(ParametersService.get_validate_list(command_template, value))
         return prepared_commands
 
     def add_commands_templates(self, commands_templates):
