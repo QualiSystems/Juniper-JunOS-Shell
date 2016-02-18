@@ -13,7 +13,6 @@ class junos_resource_driver(networking_generic_resource_driver):
     def Init(self, matrixJSON):
         self.handler_name = 'JUNOS'
         networking_generic_resource_driver.Init(self, matrixJSON)
-        # print self.handler_name
 
 if __name__ == '__main__':
 
@@ -76,9 +75,9 @@ if __name__ == '__main__':
     # import os
     # os.environ['QS_CONFIG'] = "/home/yar/QualiSystems/Git/TFS/Packages/qualipy/qs_config.ini"
     resource_driver = junos_resource_driver('77', data_json)
-    # print(resource_driver._resource_handler._delete_vlans(["vlan-247"]))
+    print(resource_driver._resource_handler._delete_vlans(["vlan-247"]))
     print(resource_driver._resource_handler._add_vlans_on_port('ge-0/0/2', ['vlan-247'], 'trunk'))
-    # print(resource_driver._resource_handler._get_ports_for_vlan("vlan-238"))
+    print(resource_driver._resource_handler._get_ports_for_vlan("vlan-238"))
     # resource_driver.Add_VLAN(data_json, '192.168.28.150/0/1/0/7|192.168.28.150/0/1/0/2', '1022, 1023-1028', "trunk", "")
     # resource_driver.Remove_VLAN(data_json, '192.168.28.150/0/1/0/7|192.168.28.150/0/1/0/2', '1022, 1023-1028', "trunk", "")
     # resource_driver.Remove_VLAN(data_json, '192.168.28.150/0/1/0/7', '234', 'access', 'qnq')

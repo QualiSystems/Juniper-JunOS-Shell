@@ -2,17 +2,17 @@ import time
 import collections
 import socket
 
-from cloudshell.networking.juniper.juniper_base import JuniperBase
+import re
 from cloudshell.cli import expected_actions
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 from cloudshell.networking.juniper.autoload.juniper_snmp_autoload import JuniperSnmpAutoload
 from cloudshell.networking.juniper.junos.command_templates.add_remove_vlan import ADD_REMOVE_VLAN_TEMPLATES
-from cloudshell.snmp.quali_snmp import QualiSnmp
-import re
 from cloudshell.networking.parameters_service.parameters_service import ParametersService
+from cloudshell.networking.networking_handler_interface import NetworkingHandlerInterface
+from cloudshell.shell.core.handler_base import HandlerBase
 
 
-class JunOS(JuniperBase):
+class JunOS(HandlerBase, NetworkingHandlerInterface):
     CONFIG_MODE_PROMPT = '.*# *$'
     EXPECTED_MAP = collections.OrderedDict([('Username: *$|Login: *$', expected_actions.send_username),
                                             ('closed by remote host', expected_actions.do_reconnect),
@@ -32,14 +32,9 @@ class JunOS(JuniperBase):
                   r'error:\s+Access\s+interface']
 
     def __init__(self, connection_manager, logger=None):
-        self._connection_manager = connection_manager
-        self._session = None
-        self._logger = logger
+        HandlerBase.__init__(self, connection_manager, logger)
         self._prompt = '.*[>%#] *$'
-        self._params_sep = ' '
-        self._command_retries = 3
-        self._expected_map = dict(JunOS.EXPECTED_MAP)
-        self._snmp_handler = None
+        self._expected_map = JunOS.EXPECTED_MAP
         self._cloud_shell_api = None
         self._commands_templates = ADD_REMOVE_VLAN_TEMPLATES
 
@@ -63,38 +58,6 @@ class JunOS(JuniperBase):
             self._cloud_shell_api = CloudShellAPISession(testshell_ip, testshell_user, testshell_password,
                                                          testshell_domain)
         return self._cloud_shell_api
-
-    def set_parameters(self, json_object):
-        self.resources_dict = json_object['resource']
-        self.reservation_dict = json_object['reservation']
-        pass
-
-    def _send_command(self, command, expected_str=None, expected_map=None, timeout=30, retry_count=10,
-                      is_need_default_prompt=True):
-        if expected_map is None:
-            expected_map = self._expected_map
-
-        if not expected_str:
-            expected_str = self._prompt
-        else:
-            if is_need_default_prompt:
-                expected_str = expected_str + '|' + self._prompt
-
-        if not self._session:
-            self.connect()
-
-        out = ''
-        for retry in range(self._command_retries):
-            try:
-                out = self._session.hardware_expect(command, expected_str, timeout, expected_map=expected_map,
-                                                    retry_count=retry_count)
-                break
-            except Exception as e:
-                self._logger.error(e)
-                if retry == self._command_retries - 1:
-                    raise Exception('Can not send command')
-                self.reconnect()
-        return out
 
     def send_commands_list(self, commands_list):
         output = ""
@@ -200,7 +163,7 @@ class JunOS(JuniperBase):
             raise Exception('Switchport type is Access, but vlan id/range is empty')
         port_list = []
         for port in ports.split('|'):
-            port_resource_map = self.cloud_shell_api().GetResourceDetails(self.resources_dict['ResourceName'])
+            port_resource_map = self.cloud_shell_api().GetResourceDetails(self.attributes_dict['ResourceName'])
             temp_port_name = self._get_resource_full_name(port, port_resource_map)
             if not temp_port_name or '/' not in temp_port_name:
                 self._logger.error('Interface was not found')
@@ -210,7 +173,7 @@ class JunOS(JuniperBase):
             port_list.append(port_name)
 
         vlan_map = {"vlan-" + name.strip(): name.strip() for name in vlan_range.split(',')}
-        self._logger.info('Vlan map: '+str(vlan_map))
+        self._logger.info('Vlan map: ' + str(vlan_map))
 
         if remove:
             for port in port_list:
@@ -364,7 +327,7 @@ class JunOS(JuniperBase):
         self._logger.info('************************************************************************')
         self._logger.info('Start SNMP discovery process .....')
         generic_autoload = JuniperSnmpAutoload(self.snmp_handler, self._logger)
-        result = generic_autoload.get_inventory()
+        result = generic_autoload.discover_snmp()
         self._logger.info('Start SNMP discovery Completed')
         return result
 
@@ -392,54 +355,11 @@ class JunOS(JuniperBase):
     def rollback(self):
         self.send_config_command('rollback')
 
-    def connect(self):
-        self._session = self._connection_manager.get_session(self._prompt)
-        self._default_actions()
-
-    def disconnect(self):
-        if self._session:
-            self._send_command('exit')
-            self._send_command('exit')
-            self._send_command('exit')
-            return self._session.disconnect()
-
-    def reconnect(self, retries_count=5, sleep_time=15):
-        if self._session:
-            self._session.reconnect(self._prompt, retries_count, sleep_time)
-
-        self._default_actions()
-        self._logger.info('Session reconnected successfully!')
-
     def _getSessionHandler(self):
         return self._session
 
     def _getLogger(self):
         return self._logger
-
-    def set_expected_map(self, expected_map):
-        self._expected_map = expected_map
-
-    def create_snmp_handler(self):
-        """
-        Creates snmp handler if it is not yet created
-        :param json_object: parsed json, to create snmp handler if its None
-        """
-        ip = self.resources_dict['ResourceAddress']
-        user = self.resources_dict['SNMP V3 User']
-        password = self.resources_dict['SNMP V3 Password']
-        private_key = self.resources_dict['SNMP V3 Private Key']
-        community = self.resources_dict['SNMP Read Community']
-        version = self.resources_dict['SNMP Version']
-        v3_user = None
-        # if not self._snmp_handler:
-        if '3' in version:
-            if user != '' and password != '' and private_key != '':
-                # userName=user, authKey=password, privKey=private_key, authProtocol=usmHMACSHAAuthProtocol, privProtocol=usmDESPrivProtocol
-                v3_user = {'userName': user, 'authKey': password, 'privKey': private_key}
-        else:
-            if community == '':
-                community = 'public'
-        return QualiSnmp(ip=ip, v3_user=v3_user, community=community)
 
     def normalize_output(self, output):
         return output.replace(' ', self.SPACE).replace('\r\n', self.NEWLINE).replace('\n', self.NEWLINE).replace('\r',
@@ -455,3 +375,15 @@ class JunOS(JuniperBase):
 
     def add_commands_templates(self, commands_templates):
         self._commands_templates.update(commands_templates)
+
+    def restore_configuration(self, source_file, clear_config='override'):
+        pass
+
+    def update_firmware(self, remote_host, file_path):
+        pass
+
+    def backup_configuration(self, destination_host, source_filename):
+        pass
+
+    def send_command(self, cmd, expected_str=None, timeout=30):
+        pass
