@@ -12,7 +12,7 @@ from cloudshell.networking.networking_handler_interface import NetworkingHandler
 from cloudshell.shell.core.handler_base import HandlerBase
 
 
-class JunOS(HandlerBase, NetworkingHandlerInterface):
+class JuniperJunosHandler(HandlerBase, NetworkingHandlerInterface):
     CONFIG_MODE_PROMPT = '.*# *$'
     EXPECTED_MAP = collections.OrderedDict([('Username: *$|Login: *$', expected_actions.send_username),
                                             ('closed by remote host', expected_actions.do_reconnect),
@@ -34,7 +34,7 @@ class JunOS(HandlerBase, NetworkingHandlerInterface):
     def __init__(self, connection_manager, logger=None):
         HandlerBase.__init__(self, connection_manager, logger)
         self._prompt = '.*[>%#] *$'
-        self._expected_map = JunOS.EXPECTED_MAP
+        self._expected_map = JuniperJunosHandler.EXPECTED_MAP
         self._cloud_shell_api = None
         self._commands_templates = ADD_REMOVE_VLAN_TEMPLATES
 
@@ -142,25 +142,7 @@ class JunOS(HandlerBase, NetworkingHandlerInterface):
                 return result
         return result
 
-    def configure_vlan(self, vlan_range, ports, switchport_type, additional_info, remove=False):
-        """
-        Sends snmp get command
-        :param vlan_range: range of vlans to be added, if empty, and switchport_type = trunk, trunk mode will be assigned
-        :param ports: List of interfaces Resource Full Address
-        :param switchport_type: type of adding vlan ('trunk' or 'access')
-        :param additional_info: contains QNQ or CTag parameter
-        :param remove: remove or add flag
-        :return: success message
-        :rtype: string
-        """
-
-        self._logger.info('Vlan Configuration Started')
-        self._logger.info(
-            'Ports: ' + ports + ', Vlan_range: ' + vlan_range + ', Typa: ' + switchport_type + ', Additional_info: ' + additional_info)
-        if len(ports) < 1:
-            raise Exception('Port list is empty')
-        if vlan_range == '' and switchport_type == 'access':
-            raise Exception('Switchport type is Access, but vlan id/range is empty')
+    def _get_ports_by_resources_path(self, ports):
         port_list = []
         for port in ports.split('|'):
             port_resource_map = self.cloud_shell_api().GetResourceDetails(self.attributes_dict['ResourceName'])
@@ -171,26 +153,53 @@ class JunOS(HandlerBase, NetworkingHandlerInterface):
             port_name_splited = temp_port_name.split('/')[-1].split('-', 1)
             port_name = "{0}-{1}".format(port_name_splited[0], port_name_splited[1].replace('-', '/'))
             port_list.append(port_name)
+        return port_list
 
+    def remove_vlan(self, vlan_range, port_list, port_mode, additional_info):
+        self._logger.info('Remove vlan invoked')
+        self._logger.info(
+            'Ports: ' + port_list+ ', Vlan_range: ' + vlan_range + ', Typa: ' + port_mode + ', Additional_info: ' + additional_info)
+        if len(port_list) < 1:
+            raise Exception('Port list is empty')
+        if vlan_range == '':
+            raise Exception('Vlan range is empty')
         vlan_map = {"vlan-" + name.strip(): name.strip() for name in vlan_range.split(',')}
         self._logger.info('Vlan map: ' + str(vlan_map))
 
-        if remove:
-            for port in port_list:
-                self._remove_vlans_on_port(port, vlan_map.keys())
-                # self._remove_port_mode_on_interface(port)
-            self._delete_vlans(vlan_map.keys())
-        else:
-            for vlan_name in vlan_map:
-                self._create_vlan(vlan_name, vlan_map[vlan_name], additional_info)
-            for port in port_list:
-                self._clean_port(port)
-                self._add_vlans_on_port(port, vlan_map.keys(), switchport_type)
+        associated_port_list = self._get_ports_by_resources_path(port_list)
+
+        for port in associated_port_list:
+            self._remove_vlans_on_port(port, vlan_map.keys())
+        self._delete_vlans(vlan_map.keys())
+        self.commit()
+        self._exit_configuration_mode()
+
+        self._logger.info('Vlan {0} was removed on interfaces {1}'.format(vlan_range, port_list))
+        return 'Vlan Configuration Completed'
+
+    def add_vlan(self, vlan_range, port_list, port_mode, additional_info):
+        self._logger.info('Vlan Configuration Started')
+        self._logger.info(
+            'Ports: ' + port_list+ ', Vlan_range: ' + vlan_range + ', Typa: ' + port_mode + ', Additional_info: ' + additional_info)
+        if len(port_list) < 1:
+            raise Exception('Port list is empty')
+        if vlan_range == '':
+            raise Exception('Vlan range is empty')
+        vlan_map = {"vlan-" + name.strip(): name.strip() for name in vlan_range.split(',')}
+        self._logger.info('Vlan map: ' + str(vlan_map))
+
+        associated_port_list = self._get_ports_by_resources_path(port_list)
+
+        for vlan_name in vlan_map:
+            self._create_vlan(vlan_name, vlan_map[vlan_name], additional_info)
+        for port in associated_port_list:
+            self._clean_port(port)
+            self._add_vlans_on_port(port, vlan_map.keys(), port_mode)
 
         self.commit()
         self._exit_configuration_mode()
 
-        self._logger.info('Vlan {0} was assigned to the interfaces {1}'.format(vlan_range, ports))
+        self._logger.info('Vlan {0} was assigned to the interfaces {1}'.format(vlan_range, port_list))
         return 'Vlan Configuration Completed'
 
     def _get_ports_for_vlan(self, vlan_name):
