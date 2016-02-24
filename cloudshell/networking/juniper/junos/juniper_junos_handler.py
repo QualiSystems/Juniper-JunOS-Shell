@@ -7,6 +7,7 @@ from cloudshell.cli import expected_actions
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 from cloudshell.networking.juniper.autoload.juniper_snmp_autoload import JuniperSnmpAutoload
 from cloudshell.networking.juniper.junos.command_templates.add_remove_vlan import ADD_REMOVE_VLAN_TEMPLATES
+from cloudshell.networking.juniper.junos.command_templates.save_restore import SAVE_RESTORE
 from cloudshell.networking.parameters_service.parameters_service import ParametersService
 from cloudshell.networking.networking_handler_interface import NetworkingHandlerInterface
 from cloudshell.shell.core.handler_base import HandlerBase
@@ -29,14 +30,17 @@ class JuniperJunosHandler(HandlerBase, NetworkingHandlerInterface):
     NEWLINE = '<QS_LF>'
 
     ERROR_LIST = [r'syntax\s+error,\s+expecting', r'error:\s+configuration\s+check-out\s+failed', r'syntax\s+error',
-                  r'error:\s+Access\s+interface']
+                  r'error:\s+Access\s+interface', r'Error\s+saving\s+configuration\s+to',
+                  r'error:\s+problem\s+checking\s+file']
 
     def __init__(self, connection_manager, logger=None):
         HandlerBase.__init__(self, connection_manager, logger)
         self._prompt = '.*[>%#] *$'
         self._expected_map = JuniperJunosHandler.EXPECTED_MAP
         self._cloud_shell_api = None
-        self._commands_templates = ADD_REMOVE_VLAN_TEMPLATES
+        self._commands_templates = {}
+        self.add_commands_templates(ADD_REMOVE_VLAN_TEMPLATES)
+        self.add_commands_templates(SAVE_RESTORE)
 
     @property
     def snmp_handler(self):
@@ -158,7 +162,7 @@ class JuniperJunosHandler(HandlerBase, NetworkingHandlerInterface):
     def remove_vlan(self, vlan_range, port_list, port_mode, additional_info):
         self._logger.info('Remove vlan invoked')
         self._logger.info(
-            'Ports: ' + port_list+ ', Vlan_range: ' + vlan_range + ', Typa: ' + port_mode + ', Additional_info: ' + additional_info)
+            'Ports: ' + port_list + ', Vlan_range: ' + vlan_range + ', Typa: ' + port_mode + ', Additional_info: ' + additional_info)
         if len(port_list) < 1:
             raise Exception('Port list is empty')
         if vlan_range == '':
@@ -180,7 +184,7 @@ class JuniperJunosHandler(HandlerBase, NetworkingHandlerInterface):
     def add_vlan(self, vlan_range, port_list, port_mode, additional_info):
         self._logger.info('Vlan Configuration Started')
         self._logger.info(
-            'Ports: ' + port_list+ ', Vlan_range: ' + vlan_range + ', Typa: ' + port_mode + ', Additional_info: ' + additional_info)
+            'Ports: ' + port_list + ', Vlan_range: ' + vlan_range + ', Typa: ' + port_mode + ', Additional_info: ' + additional_info)
         if len(port_list) < 1:
             raise Exception('Port list is empty')
         if vlan_range == '':
@@ -211,17 +215,17 @@ class JuniperJunosHandler(HandlerBase, NetworkingHandlerInterface):
 
     def _create_vlan(self, vlan_name, vlan_range, additional_info):
         if 'qnq' in additional_info:
-            self.configure_interface_ethernet(self._create_qnq_vlan_flow(vlan_name, vlan_range))
+            self.execute_command_map(self._create_qnq_vlan_flow(vlan_name, vlan_range))
         else:
             if re.match(r'\d+-\d+', vlan_range):
-                self.configure_interface_ethernet(self._create_vlan_range_flow(vlan_name, vlan_range))
+                self.execute_command_map(self._create_vlan_range_flow(vlan_name, vlan_range))
             else:
-                self.configure_interface_ethernet(self._create_vlan_flow(vlan_name, vlan_range))
+                self.execute_command_map(self._create_vlan_flow(vlan_name, vlan_range))
 
     def _delete_vlan(self, vlan_name):
         for port in self._get_ports_for_vlan(vlan_name):
             self._remove_vlans_on_port(port, [vlan_name])
-        self.configure_interface_ethernet(self._delete_vlan_flow(vlan_name))
+        self.execute_command_map(self._delete_vlan_flow(vlan_name))
 
     def _delete_vlans(self, vlan_list):
         for vlan_name in vlan_list:
@@ -229,12 +233,12 @@ class JuniperJunosHandler(HandlerBase, NetworkingHandlerInterface):
 
     def _add_vlans_on_port(self, port, vlan_list, type):
         for vlan_name in vlan_list:
-            self.configure_interface_ethernet(self._set_vlan_to_interface_flow(port, type, vlan_name))
+            self.execute_command_map(self._set_vlan_to_interface_flow(port, type, vlan_name))
             self._logger.info('Vlan {0} will be assigned on interface {1}'.format(vlan_name, port))
 
     def _remove_vlans_on_port(self, port, vlan_list):
         for vlan_name in vlan_list:
-            self.configure_interface_ethernet(self._delete_vlan_on_interface_flow(port, vlan_name))
+            self.execute_command_map(self._delete_vlan_on_interface_flow(port, vlan_name))
             self._logger.info('Vlan {0} removed from interface {1}'.format(vlan_name, port))
 
     def _get_vlans_for_port(self, port):
@@ -252,7 +256,7 @@ class JuniperJunosHandler(HandlerBase, NetworkingHandlerInterface):
         self._logger.info("Cleaning port {0}, vlans, {1}".format(port, ", ".join(vlans)))
 
     def _remove_port_mode_on_interface(self, port):
-        self.configure_interface_ethernet(self._delete_port_mode_on_interface_flow(port))
+        self.execute_command_map(self._delete_port_mode_on_interface_flow(port))
         self._logger.info("Port mode removed for {0}".format(port))
 
     def _create_vlan_flow(self, vlan_name, vlan_id):
@@ -301,7 +305,7 @@ class JuniperJunosHandler(HandlerBase, NetworkingHandlerInterface):
         cmd_map['rollback'] = []
         return cmd_map
 
-    def configure_interface_ethernet(self, command_map):
+    def execute_command_map(self, command_map):
         """
         Configures interface ethernet
         :param kwargs: dictionary of parameters
@@ -312,7 +316,7 @@ class JuniperJunosHandler(HandlerBase, NetworkingHandlerInterface):
         commands_list = self.get_commands_list(command_map)
         output = self.send_commands_list(commands_list)
         self._check_output_for_errors(output)
-        return 'Finished configuration of ethernet interface!'
+        return '!'
 
     def _check_output_for_errors(self, output):
         for error_pattern in self.ERROR_LIST:
@@ -359,7 +363,7 @@ class JuniperJunosHandler(HandlerBase, NetworkingHandlerInterface):
         return out
 
     def commit(self):
-        self.configure_interface_ethernet(self._commit_flow())
+        self.execute_command_map(self._commit_flow())
 
     def rollback(self):
         self.send_config_command('rollback')
@@ -386,13 +390,22 @@ class JuniperJunosHandler(HandlerBase, NetworkingHandlerInterface):
         self._commands_templates.update(commands_templates)
 
     def restore_configuration(self, source_file, clear_config='override'):
-        pass
+        if not source_file or source_file is '':
+            raise Exception('JuniperJunosHandler', 'Config source cannot be empty')
+        self.execute_command_map({'restore': source_file})
+        return "Config file {0} has been restored".format(source_file)
 
     def update_firmware(self, remote_host, file_path):
         pass
 
     def backup_configuration(self, destination_host, source_filename):
-        pass
+        file_name = "config-{0}".format(time.strftime("%d%m%y-%H%M%S", time.localtime()))
+        if not destination_host or destination_host is '':
+            full_path = file_name
+        else:
+            full_path = "{0}/{1}".format(destination_host, file_name)
+        self.execute_command_map({'save': full_path})
+        return "Config file {0} has been saved".format(full_path)
 
     def send_command(self, cmd, expected_str=None, timeout=30):
         pass
