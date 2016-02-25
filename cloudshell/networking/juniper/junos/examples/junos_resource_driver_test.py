@@ -1,60 +1,62 @@
 from cloudshell.networking.juniper.junos.resource_driver.junos_resource_driver import \
-    junos_resource_driver  # data_json = str("""{
-#         "resource" : {
-#                 "ResourceAddress": "192.168.28.150",
-#                 "User": "root",
-#                 "Password": "Juniper",
-#                 "CLI Connection Type": "ssh",
-#                 "Console User": "",
-#                 "Console Password": "",
-#                 "Console Server IP Address": "",
-#                 "ResourceName" : "junos_us",
-#                 "ResourceFullName" : "Juniper",
-#                 "Enable Password": "",
-#                 "Console Port": "",
-#                 "SNMP Read Community": "public",
-#                 "SNMP Version": "2",
-#                 "SNMP V3 Password": "",
-#                 "SNMP V3 User": "",
-#                 "SNMP V3 Private Key": "",
-#                 "Filename": "/tmp/qsoutput.log",
-#                 "HandlerName": "JUNOS"
-#             },
-#         "reservation" : {
-#                 "Username" : "admin",
-#                 "Password" : "admin",
-#                 "Domain" : "Global",
-#                 "AdminUsername" : "admin",
-#                 "AdminPassword" : "admin"}
-#         }""")
-#
+    junos_resource_driver
 
 data_json = str("""{
-            "resource" : {
-                    "ResourceAddress": "192.168.28.150",
-                    "User": "root",
-                    "Password": "Juniper",
-                    "CLI Connection Type": "ssh",
-                    "Console User": "",
-                    "Console Password": "",
-                    "Console Server IP Address": "",
-                    "ResourceName" : "junos_us",
-                    "ResourceFullName" : "Juniper",
-                    "Enable Password": "",
-                    "Console Port": "",
-                    "SNMP Read Community": "public",
-                    "SNMP Version": "2",
-                    "SNMP V3 Password": "",
-                    "SNMP V3 User": "",
-                    "SNMP V3 Private Key": ""
-                },
-            "reservation" : {
-                    "Username" : "admin",
-                    "Password" : "admin",
-                    "Domain" : "Global",
-                    "AdminUsername" : "admin",
-                    "AdminPassword" : "admin"}
-            }""")
+        "resource" : {
+                "ResourceAddress": "192.168.28.150",
+                "User": "root",
+                "Password": "Juniper",
+                "CLI Connection Type": "ssh",
+                "Console User": "",
+                "Console Password": "",
+                "Console Server IP Address": "",
+                "ResourceName" : "junos_us",
+                "ResourceFullName" : "Juniper",
+                "Enable Password": "",
+                "Console Port": "",
+                "SNMP Read Community": "public",
+                "SNMP Version": "2",
+                "SNMP V3 Password": "",
+                "SNMP V3 User": "",
+                "SNMP V3 Private Key": "",
+                "Filename": "/tmp/qsoutput.log",
+                "HandlerName": "JUNOS"
+            },
+        "reservation" : {
+                "Username" : "admin",
+                "Password" : "admin",
+                "Domain" : "Global",
+                "AdminUsername" : "admin",
+                "AdminPassword" : "admin"}
+        }""")
+
+
+# data_json = str("""{
+#             "resource" : {
+#                     "ResourceAddress": "192.168.28.150",
+#                     "User": "root",
+#                     "Password": "Juniper",
+#                     "CLI Connection Type": "ssh",
+#                     "Console User": "",
+#                     "Console Password": "",
+#                     "Console Server IP Address": "",
+#                     "ResourceName" : "junos_us",
+#                     "ResourceFullName" : "Juniper",
+#                     "Enable Password": "",
+#                     "Console Port": "",
+#                     "SNMP Read Community": "public",
+#                     "SNMP Version": "2",
+#                     "SNMP V3 Password": "",
+#                     "SNMP V3 User": "",
+#                     "SNMP V3 Private Key": ""
+#                 },
+#             "reservation" : {
+#                     "Username" : "admin",
+#                     "Password" : "admin",
+#                     "Domain" : "Global",
+#                     "AdminUsername" : "admin",
+#                     "AdminPassword" : "admin"}
+#             }""")
 # import os
 # os.environ['QS_CONFIG'] = "/home/yar/QualiSystems/Git/TFS/Packages/qualipy/qs_config.ini"
 resource_driver = junos_resource_driver('77', data_json)
@@ -66,4 +68,5 @@ resource_driver = junos_resource_driver('77', data_json)
 # resource_driver.Remove_VLAN(data_json, '192.168.28.150/0/1/0/7', '234', 'access', 'qnq')
 # print(resource_driver.GetInventory(data_json)
 # print(resource_driver.Save(data_json, "", "test"))
-print(resource_driver.Restore(data_json, "config-240216-170", "test"))
+print(resource_driver.SendCustomConfigCommand(data_json, 'dsdsdsd'))
+

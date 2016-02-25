@@ -1,14 +1,16 @@
 import time
 import collections
-import socket
 
 import re
 from cloudshell.cli import expected_actions
-
 from cloudshell.networking.juniper.junos.command_templates.add_remove_vlan import ADD_REMOVE_VLAN_TEMPLATES
 from cloudshell.networking.juniper.junos.command_templates.save_restore import SAVE_RESTORE
+from cloudshell.networking.juniper.junos.command_templates.shutdown import SHUTDOWN
+from cloudshell.networking.juniper.junos.command_templates.firmware import FIRMWARE_UPGRADE
 from cloudshell.networking.networking_handler_interface import NetworkingHandlerInterface
 from cloudshell.networking.juniper.handler.juniper_base_handler import JuniperBaseHandler
+from cloudshell.networking.juniper.autoload.juniper_snmp_autoload import JuniperSnmpAutoload
+
 
 class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
     EXPECTED_MAP = collections.OrderedDict([('Username: *$|Login: *$', expected_actions.send_username),
@@ -21,6 +23,10 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
                                             ('[Pp]assword: *$', expected_actions.send_password)
                                             ])
 
+    SPACE = '<QS_SP>'
+    RETURN = '<QS_CR>'
+    NEWLINE = '<QS_LF>'
+
     ERROR_LIST = []
 
     def __init__(self, connection_manager, logger=None):
@@ -29,6 +35,8 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
         self._expected_map = JuniperJunosHandler.EXPECTED_MAP
         self.add_command_templates(ADD_REMOVE_VLAN_TEMPLATES)
         self.add_command_templates(SAVE_RESTORE)
+        self.add_command_templates(SHUTDOWN)
+        self.add_command_templates(FIRMWARE_UPGRADE)
         self.add_error_list(JuniperJunosHandler.ERROR_LIST)
 
     def _get_resource_full_name(self, port_resource_address, resource_details_map):
@@ -195,10 +203,20 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
         if not source_file or source_file is '':
             raise Exception('JuniperJunosHandler', 'Config source cannot be empty')
         self.execute_command_map({'restore': source_file})
+        self.commit()
         return "Config file {0} has been restored".format(source_file)
 
     def update_firmware(self, remote_host, file_path):
-        pass
+        self._logger.info("Upgradeing firmware")
+        if not remote_host or remote_host is '' or not file_path or file_path is '':
+            raise Exception('JuniperJunosHandler', "Remote host or filepath cannot be empty")
+        if remote_host.endswith('/'):
+            remote_host = remote_host[:-1]
+        if file_path.startswith('/'):
+            file_path = file_path[1:]
+        self.execute_command_map({'firmware_upgrade': '{0}/{1}'.format(remote_host, file_path)})
+        self.execute_command_map({'reboot': []})
+        return "Firmware has been upgraded"
 
     def backup_configuration(self, destination_host, source_filename):
         file_name = "config-{0}".format(time.strftime("%d%m%y-%H%M%S", time.localtime()))
@@ -212,5 +230,35 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
     def send_command(self, cmd, expected_str=None, timeout=30):
         self._exit_configuration_mode()
         return self._send_command(cmd, expected_str=expected_str, timeout=timeout, is_need_default_prompt=False)
+
+    def discover_snmp(self):
+        """Load device structure, and all required Attribute according to Networking Elements Standardization design
+        :return: Attributes and Resources matrix,
+        currently in string format (matrix separated by '$', lines by '|', columns by ',')
+        """
+        # ToDo add voperation system validation
+        # if not self.is_valid_device_os():
+        # error_message = 'Incompatible driver! Please use correct resource driver for {0} operation system(s)'. \
+        #    format(str(tuple(self.supported_os)))
+        # self._logger.error(error_message)
+        # raise Exception(error_message)
+
+        self._logger.info('************************************************************************')
+        self._logger.info('Start SNMP discovery process .....')
+        generic_autoload = JuniperSnmpAutoload(self.snmp_handler, self._logger)
+        result = generic_autoload.discover_snmp()
+        self._logger.info('Start SNMP discovery Completed')
+        return result
+
+    def normalize_output(self, output):
+        return output.replace(' ', self.SPACE).replace('\r\n', self.NEWLINE).replace('\n', self.NEWLINE).replace('\r',
+                                                                                                                 self.NEWLINE)
+
+    def shutdown(self):
+        self._logger.info("shutting down")
+        self.execute_command_map({'shutdown': []})
+        return "Shutdown command completed"
+
+
 
 
