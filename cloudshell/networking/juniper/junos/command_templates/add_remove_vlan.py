@@ -10,8 +10,6 @@ ADD_REMOVE_VLAN_TEMPLATES = {'create_vlan': CommandTemplate('set vlans {0} vlan-
                          ['Wrong interface name', 'Wrong port mode', 'Wrong vlan name']),
                      'enable_interface': CommandTemplate('delete interfaces {0} disable', [r'.+'],
                                                          ['Wrong interface name']),
-                     'commit': CommandTemplate('commit', [], []),
-                     'rollback': CommandTemplate('rollback', [], []),
                      'disable_interface': CommandTemplate('set interfaces {0} disable', [r'.+'],
                                                           ['Incorrect interface']),
                      'delete_vlan_on_interface': CommandTemplate(
