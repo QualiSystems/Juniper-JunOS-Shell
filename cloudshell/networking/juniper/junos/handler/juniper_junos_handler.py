@@ -80,7 +80,6 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
             self._remove_vlans_on_port(port, vlan_map.keys())
         self._delete_vlans(vlan_map.keys())
         self.commit()
-        self._exit_configuration_mode()
 
         self._logger.info('Vlan {0} was removed on interfaces {1}'.format(vlan_range, port_list))
         return 'Vlan Configuration Completed'
@@ -127,9 +126,11 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
                 self.execute_command_map(self._create_vlan_flow(vlan_name, vlan_range))
 
     def _delete_vlan(self, vlan_name):
-        for port in self._get_ports_for_vlan(vlan_name):
-            self._remove_vlans_on_port(port, [vlan_name])
-        self.execute_command_map(self._delete_vlan_flow(vlan_name))
+        # for port in self._get_ports_for_vlan(vlan_name):
+        #     self._remove_vlans_on_port(port, [vlan_name])
+        # self.execute_command_map(self._delete_vlan_flow(vlan_name))
+        if len(self._get_ports_for_vlan(vlan_name)) == 0:
+            self.execute_command_map(self._delete_vlan_flow(vlan_name))
 
     def _delete_vlans(self, vlan_list):
         for vlan_name in vlan_list:
