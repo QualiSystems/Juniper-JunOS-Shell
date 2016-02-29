@@ -27,7 +27,7 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
     RETURN = '<QS_CR>'
     NEWLINE = '<QS_LF>'
 
-    ERROR_LIST = []
+    ERROR_LIST = [r'error:\s+save:\s+could\s+not\s+open\s+file']
 
     def __init__(self, connection_manager, logger=None):
         JuniperBaseHandler.__init__(self, connection_manager, logger)
@@ -224,7 +224,10 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
         if not destination_host or destination_host is '':
             full_path = file_name
         else:
+            if destination_host.endswith('/'):
+                destination_host = destination_host[:-1]
             full_path = "{0}/{1}".format(destination_host, file_name)
+        self._logger.info("Save configuration to file {0}".format(full_path))
         self.execute_command_map({'save': full_path})
         return "Config file {0} has been saved".format(full_path)
 
