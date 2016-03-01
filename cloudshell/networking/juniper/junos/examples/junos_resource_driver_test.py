@@ -68,5 +68,8 @@ resource_driver = junos_resource_driver('77', data_json)
 # resource_driver.Remove_VLAN(data_json, '192.168.28.150/0/1/0/7', '234', 'access', 'qnq')
 # print(resource_driver.GetInventory(data_json)
 print(resource_driver.Save(data_json, "/var/tmp", "test"))
+# print(resource_driver.Shutdown(data_json))
+# print(resource_driver.UpdateFirmware(data_json, 'ftp://192.168.23.45/', '/sdf/dsd'))
 # print(resource_driver.SendCustomConfigCommand(data_json, 'dsdsdsd'))
+# print(resource_driver.SendCustomCommand(data_json, 'dsdsdsd'))
 

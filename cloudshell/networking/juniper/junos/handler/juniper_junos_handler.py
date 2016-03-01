@@ -220,7 +220,8 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
         return "Firmware has been upgraded"
 
     def backup_configuration(self, destination_host, source_filename):
-        file_name = "config-{0}".format(time.strftime("%d%m%y-%H%M%S", time.localtime()))
+        system_name = self.attributes_dict['ResourceFullName'].replace('.', '_')
+        file_name = "{0}-{1}-{2}".format(system_name, source_filename, time.strftime("%d%m%y-%H%M%S", time.localtime()))
         if not destination_host or destination_host is '':
             full_path = file_name
         else:
