@@ -27,7 +27,7 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
     RETURN = '<QS_CR>'
     NEWLINE = '<QS_LF>'
 
-    ERROR_LIST = [r'error:\s+save:\s+could\s+not\s+open\s+file']
+    ERROR_LIST = [r'error:\s+.+']
 
     def __init__(self, connection_manager, logger=None):
         JuniperBaseHandler.__init__(self, connection_manager, logger)
