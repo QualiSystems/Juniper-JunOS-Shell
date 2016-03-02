@@ -55,11 +55,16 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
         for port in ports.split('|'):
             port_resource_map = self.cloud_shell_api().GetResourceDetails(self.attributes_dict['ResourceName'])
             temp_port_name = self._get_resource_full_name(port, port_resource_map)
-            if not temp_port_name or '/' not in temp_port_name:
+            if not temp_port_name or temp_port_name is '':
                 self._logger.error('Interface was not found')
                 raise Exception('Interface {0} was not found'.format(port))
             port_name_splited = temp_port_name.split('/')[-1].split('-', 1)
-            port_name = "{0}-{1}".format(port_name_splited[0], port_name_splited[1].replace('-', '/'))
+            if len(port_name_splited) > 1:
+                port_name = "{0}-{1}".format(port_name_splited[0], port_name_splited[1].replace('-', '/'))
+            elif len(port_name_splited) == 1:
+                port_name = "{0}".format(port_name_splited[0])
+            else:
+                raise Exception('JuniperJunosHandler', 'Get incorrect port description by API')
             port_list.append(port_name)
         return port_list
 
