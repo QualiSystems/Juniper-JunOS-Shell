@@ -250,6 +250,10 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
         return "Config file {0} has been saved".format(full_path)
 
     def send_command(self, cmd, expected_str=None, timeout=30):
+        if cmd is None or cmd == '':
+            raise Exception('JuniperJunosHandler', "Command cannot be empty")
+        if expected_str is None or expected_str == '':
+            expected_str = self._prompt
         self._exit_configuration_mode()
         return self._send_command(cmd, expected_str=expected_str, timeout=timeout, is_need_default_prompt=False)
 
