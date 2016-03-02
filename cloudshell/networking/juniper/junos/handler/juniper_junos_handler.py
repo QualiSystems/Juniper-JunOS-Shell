@@ -205,12 +205,24 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
         cmd_map['delete_vlan'] = [vlan_name]
         return cmd_map
 
-    def restore_configuration(self, source_file, clear_config='override'):
+    def restore_configuration(self, source_file, config_type, clear_config='override'):
+        if clear_config is '':
+            clear_config = 'override'
+
         if not source_file or source_file is '':
             raise Exception('JuniperJunosHandler', 'Config source cannot be empty')
-        self.execute_command_map({'restore': source_file})
+
+        clear_config = clear_config.lower()
+        if clear_config == 'append':
+            restore_type = 'merge'
+        elif clear_config == 'override':
+            restore_type = clear_config
+        else:
+            raise Exception('JuniperJunosHandler', 'Incorrect restore type')
+
+        self.execute_command_map({'restore': [restore_type, source_file]})
         self.commit()
-        return "Config file {0} has been restored".format(source_file)
+        return "Config file {0} has been restored with restore type {1}".format(source_file, restore_type)
 
     def update_firmware(self, remote_host, file_path):
         self._logger.info("Upgradeing firmware")
@@ -268,7 +280,3 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
         self._logger.info("shutting down")
         self.execute_command_map({'shutdown': []})
         return "Shutdown command completed"
-
-
-
-
