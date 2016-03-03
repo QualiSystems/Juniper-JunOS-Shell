@@ -279,8 +279,10 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
         return result
 
     def normalize_output(self, output):
-        return output.replace(' ', self.SPACE).replace('\r\n', self.NEWLINE).replace('\n', self.NEWLINE).replace('\r',
-                                                                                                                 self.NEWLINE)
+        if output:
+            return output.replace(' ', self.SPACE).replace('\r\n', self.NEWLINE).replace('\n', self.NEWLINE).replace(
+                '\r', self.NEWLINE)
+        return None
 
     def shutdown(self):
         self._logger.info("shutting down")
