@@ -31,7 +31,7 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
 
     def __init__(self, connection_manager, logger=None):
         JuniperBaseHandler.__init__(self, connection_manager, logger)
-        self._prompt = '.*[>%#]\s*$'
+        self._prompt = '.*[>%#]\s*[$\\n]'
         self._expected_map = JuniperJunosHandler.EXPECTED_MAP
         self.add_command_templates(ADD_REMOVE_VLAN_TEMPLATES)
         self.add_command_templates(SAVE_RESTORE)
