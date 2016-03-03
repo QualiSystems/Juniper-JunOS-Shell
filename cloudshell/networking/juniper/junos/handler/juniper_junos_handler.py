@@ -19,7 +19,7 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
                                             ('Got termination signal', expected_actions.wait_prompt_or_reconnect),
                                             ('Broken pipe', expected_actions.send_command),
                                             ('[Yy]es', expected_actions.send_yes),
-                                            ('More', expected_actions.send_empty_string),
+                                            ('[Mm]ore', expected_actions.send_empty_string),
                                             ('[Pp]assword: *$', expected_actions.send_password)
                                             ])
 
@@ -31,7 +31,7 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
 
     def __init__(self, connection_manager, logger=None):
         JuniperBaseHandler.__init__(self, connection_manager, logger)
-        self._prompt = '.*[>%#]\s*[$\\n]'
+        self._prompt = '[>%#]\s*$|[>%#]\s*\n'
         self._expected_map = JuniperJunosHandler.EXPECTED_MAP
         self.add_command_templates(ADD_REMOVE_VLAN_TEMPLATES)
         self.add_command_templates(SAVE_RESTORE)
@@ -256,7 +256,8 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
         if expected_str is None or expected_str == '':
             expected_str = self._prompt
         self._exit_configuration_mode()
-        return self._send_command(cmd, expected_str=expected_str, timeout=timeout, is_need_default_prompt=False)
+        return self._send_command(cmd, expected_str=expected_str, timeout=timeout, is_need_default_prompt=False,
+                                  retry_count=20)
 
     def discover_snmp(self):
         """Load device structure, and all required Attribute according to Networking Elements Standardization design
