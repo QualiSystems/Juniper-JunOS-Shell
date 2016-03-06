@@ -117,7 +117,7 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
 
     def _get_ports_for_vlan(self, vlan_name):
         output = self.send_config_command("run show vlans {0}".format(vlan_name))
-        ports = re.findall(r'\w+-(?:\d+/)+\d+', re.sub(r'\n|\r', '', output))
+        ports = re.findall(r'\w+-(?:\d+/)+\d+|ae\d+', re.sub(r'\n|\r', '', output))
         if ports:
             return [port.strip() for port in ports]
         return []
