@@ -27,7 +27,7 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
     RETURN = '<QS_CR>'
     NEWLINE = '<QS_LF>'
 
-    ERROR_LIST = [r'error:\s+.+']
+    ERROR_LIST = [r'error:\s+.+', r'syntax\s+error']
 
     def __init__(self, connection_manager, logger=None):
         JuniperBaseHandler.__init__(self, connection_manager, logger)
@@ -238,7 +238,8 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
         return "Firmware has been upgraded"
 
     def backup_configuration(self, destination_host, source_filename):
-        system_name = self.attributes_dict['ResourceFullName'].replace('.', '_')
+        system_name = self.attributes_dict['ResourceFullName']
+        system_name = re.sub(r'[\.\s]', '_', system_name)
         file_name = "{0}-{1}-{2}".format(system_name, source_filename, time.strftime("%d%m%y-%H%M%S", time.localtime()))
         if not destination_host or destination_host is '':
             full_path = file_name
