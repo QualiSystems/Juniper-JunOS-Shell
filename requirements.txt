@@ -1,5 +1,5 @@
-cloudshell-cli
-cloudshell-networking
-cloudshell-shell-core
-cloudshell-automation-api
-cloudshell-networking-juniper
+cloudshell-cli<2.0
+cloudshell-networking<2.0
+cloudshell-shell-core<2.0
+cloudshell-automation-api<2.0
+cloudshell-networking-juniper<2.0
