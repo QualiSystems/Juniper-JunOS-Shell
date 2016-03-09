@@ -53,7 +53,7 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
     def _get_ports_by_resources_path(self, ports):
         port_list = []
         for port in ports.split('|'):
-            port_resource_map = self.cloud_shell_api().GetResourceDetails(self.attributes_dict['ResourceName'])
+            port_resource_map = self.cloud_shell_api.GetResourceDetails(self.attributes_dict['ResourceName'])
             temp_port_name = self._get_resource_full_name(port, port_resource_map)
             if not temp_port_name or temp_port_name is '':
                 self._logger.error('Interface was not found')
@@ -242,11 +242,16 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
         system_name = re.sub(r'[\.\s]', '_', system_name)
         file_name = "{0}-{1}-{2}".format(system_name, source_filename, time.strftime("%d%m%y-%H%M%S", time.localtime()))
         if not destination_host or destination_host is '':
-            full_path = file_name
-        else:
-            if destination_host.endswith('/'):
-                destination_host = destination_host[:-1]
-            full_path = "{0}/{1}".format(destination_host, file_name)
+            backup_location = self.cloud_shell_api.GetAttributeValue(self.attributes_dict['ResourceFullName'],
+                                                                     'Backup Location').Value
+            if backup_location and backup_location is not '':
+                destination_host = backup_location
+            else:
+                raise Exception('JuniperJunosHandler', "Backup location or path is empty")
+
+        if destination_host.endswith('/'):
+            destination_host = destination_host[:-1]
+        full_path = "{0}/{1}".format(destination_host, file_name)
         self._logger.info("Save configuration to file {0}".format(full_path))
         self.execute_command_map({'save': full_path})
         return "Config file {0} has been saved".format(full_path)
@@ -287,5 +292,5 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
 
     def shutdown(self):
         self._logger.info("shutting down")
-        self.execute_command_map({'shutdown': []})
+        self.execute_command_map({'shutdown': []}, self._send_command)
         return "Shutdown command completed"
