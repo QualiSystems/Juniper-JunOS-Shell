@@ -27,7 +27,7 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
     RETURN = '<QS_CR>'
     NEWLINE = '<QS_LF>'
 
-    ERROR_LIST = [r'error:\s+.+', r'syntax\s+error']
+    ERROR_LIST = [r'[Ee]rror:\s+.+', r'syntax\s+error', r'[Ee]rror\s+saving\s+configuration']
 
     def __init__(self, connection_manager, logger=None):
         JuniperBaseHandler.__init__(self, connection_manager, logger)
@@ -240,6 +240,10 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
     def backup_configuration(self, destination_host, source_filename):
         system_name = self.attributes_dict['ResourceFullName']
         system_name = re.sub(r'[\.\s]', '_', system_name)
+
+        if not source_filename or source_filename.lower() != 'startup':
+            source_filename = 'Running'
+
         file_name = "{0}-{1}-{2}".format(system_name, source_filename, time.strftime("%d%m%y-%H%M%S", time.localtime()))
         if not destination_host or destination_host is '':
             backup_location = self.cloud_shell_api.GetAttributeValue(self.attributes_dict['ResourceFullName'],
