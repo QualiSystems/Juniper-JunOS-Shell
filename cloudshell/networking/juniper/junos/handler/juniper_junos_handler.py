@@ -27,7 +27,7 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
     RETURN = '<QS_CR>'
     NEWLINE = '<QS_LF>'
 
-    ERROR_LIST = [r'[Ee]rror:\s+.+', r'syntax\s+error', r'[Ee]rror\s+saving\s+configuration']
+    ERROR_LIST = [r'[Ee]rror:\s+.+', r'syntax\s+error', r'[Ee]rror\s+saving\s+configuration', r'[Uu]nknown\s+command']
 
     def __init__(self, connection_manager, logger=None):
         JuniperBaseHandler.__init__(self, connection_manager, logger)
@@ -266,8 +266,8 @@ class JuniperJunosHandler(JuniperBaseHandler, NetworkingHandlerInterface):
         if expected_str is None or expected_str == '':
             expected_str = self._prompt
         self._exit_configuration_mode()
-        return self._send_command(cmd, expected_str=expected_str, timeout=timeout, is_need_default_prompt=False,
-                                  retry_count=20)
+        return self._check_output_for_errors(self._send_command(cmd, expected_str=expected_str,
+                                                timeout=timeout, is_need_default_prompt=False, retry_count=20))
 
     def discover_snmp(self):
         """Load device structure, and all required Attribute according to Networking Elements Standardization design
