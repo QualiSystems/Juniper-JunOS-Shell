@@ -1,5 +1,5 @@
-cloudshell-cli<2.0
-cloudshell-networking<2.0
-cloudshell-shell-core<2.0
-cloudshell-automation-api==6.4.17
-cloudshell-networking-juniper<2.0
+cloudshell-cli>=2.0,<2.1
+cloudshell-networking>=2.0,<2.1
+cloudshell-shell-core>=2.0,<2.1
+cloudshell-automation-api>=7.0,<7.1
+cloudshell-networking-juniper>=2.0,<2.1
