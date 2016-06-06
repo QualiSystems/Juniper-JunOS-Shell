@@ -2,18 +2,21 @@ import time
 
 from cloudshell.cli.command_template import command_template_service
 from cloudshell.configuration.cloudshell_cli_binding_keys import CLI_SERVICE
-from cloudshell.configuration.cloudshell_shell_core_binding_keys import LOGGER
+from cloudshell.configuration.cloudshell_shell_core_binding_keys import LOGGER, CONTEXT, API
+from cloudshell.configuration.cloudshell_snmp_binding_keys import SNMP_HANDLER
 import inject
 import re
 from cloudshell.networking.juniper.autoload.juniper_snmp_autoload import JuniperSnmpAutoload
 from cloudshell.networking.operations.interfaces.autoload_operations_interface import AutoloadOperationsInterface
+from cloudshell.networking.operations.interfaces.configuration_operations_interface import \
+    ConfigurationOperationsInterface
+from cloudshell.networking.operations.interfaces.firmware_operations_interface import FirmwareOperationsInterface
+from cloudshell.networking.operations.interfaces.power_operations_interface import PowerOperationsInterface
+from cloudshell.networking.operations.interfaces.send_command_interface import SendCommandInterface
 
 
-# from cloudshell.networking.operations.interfaces.configuration_operations_interface import save
-
-
-
-class JuniperJunosHandler(AutoloadOperationsInterface):
+class JuniperJunosHandler(AutoloadOperationsInterface, ConfigurationOperationsInterface, FirmwareOperationsInterface,
+                          PowerOperationsInterface, SendCommandInterface):
     def __init__(self):
         pass
 
@@ -25,42 +28,45 @@ class JuniperJunosHandler(AutoloadOperationsInterface):
     def cli_service(self):
         return inject.instance(CLI_SERVICE)
 
-    def execute_command_map(self, command_map):
-        command_template_service.execute_command_map(command_map, self.cli_service.send_config_command)
+    @property
+    def snmp_handler(self):
+        return inject.instance(SNMP_HANDLER)
 
-    def restore_configuration(self, source_file, config_type, clear_config='override'):
-        if clear_config is '':
-            clear_config = 'override'
+    @property
+    def context(self):
+        return inject.instance(CONTEXT)
+
+    @property
+    def api(self):
+        return inject.instance(API)
+
+    def execute_command_map(self, command_map, send_command_func=None):
+        if send_command_func:
+            command_template_service.execute_command_map(command_map, send_command_func)
+        else:
+            command_template_service.execute_command_map(command_map, self.cli_service.send_config_command)
+
+    def restore_configuration(self, source_file, config_type, restore_method='override', vrf=None):
+        if restore_method is '':
+            restore_method = 'override'
 
         if not source_file or source_file is '':
             raise Exception('JuniperJunosHandler', 'Config source cannot be empty')
 
-        clear_config = clear_config.lower()
-        if clear_config == 'append':
+        restore_method = restore_method.lower()
+        if restore_method == 'append':
             restore_type = 'merge'
-        elif clear_config == 'override':
-            restore_type = clear_config
+        elif restore_method == 'override':
+            restore_type = restore_method
         else:
             raise Exception('JuniperJunosHandler', 'Incorrect restore type')
 
         self.execute_command_map({'restore': [restore_type, source_file]})
-        self.commit()
+        self.cli_service.commit()
         return "Config file {0} has been restored with restore type {1}".format(source_file, restore_type)
 
-    def update_firmware(self, remote_host, file_path):
-        self.logger.info("Upgradeing firmware")
-        if not remote_host or remote_host is '' or not file_path or file_path is '':
-            raise Exception('JuniperJunosHandler', "Remote host or filepath cannot be empty")
-        if remote_host.endswith('/'):
-            remote_host = remote_host[:-1]
-        if file_path.startswith('/'):
-            file_path = file_path[1:]
-        self.execute_command_map({'firmware_upgrade': '{0}/{1}'.format(remote_host, file_path)})
-        self.execute_command_map({'reboot': []})
-        return "Firmware has been upgraded"
-
-    def backup_configuration(self, destination_host, source_filename):
-        system_name = self.attributes_dict['ResourceFullName']
+    def save_configuration(self, destination_host, source_filename, vrf=None):
+        system_name = self.context.resource.fullname
         system_name = re.sub(r'[\.\s]', '_', system_name)
 
         if not source_filename or source_filename.lower() != 'startup':
@@ -68,8 +74,8 @@ class JuniperJunosHandler(AutoloadOperationsInterface):
 
         file_name = "{0}-{1}-{2}".format(system_name, source_filename, time.strftime("%d%m%y-%H%M%S", time.localtime()))
         if not destination_host or destination_host is '':
-            backup_location = self.cloud_shell_api.GetAttributeValue(self.attributes_dict['ResourceFullName'],
-                                                                     'Backup Location').Value
+            backup_location = self.api.GetAttributeValue(self.context.resource.fullname,
+                                                         'Backup Location').Value
             if backup_location and backup_location is not '':
                 destination_host = backup_location
             else:
@@ -82,15 +88,27 @@ class JuniperJunosHandler(AutoloadOperationsInterface):
         self.execute_command_map({'save': full_path})
         return "Config file {0} has been saved".format(full_path)
 
-    def send_command(self, cmd, expected_str=None, timeout=30):
-        if cmd is None or cmd == '':
+    def update_firmware(self, remote_host, file_path, size_of_firmware):
+        self.logger.info("Upgradeing firmware")
+        if not remote_host or remote_host is '' or not file_path or file_path is '':
+            raise Exception('JuniperJunosHandler', "Remote host or filepath cannot be empty")
+        if remote_host.endswith('/'):
+            remote_host = remote_host[:-1]
+        if file_path.startswith('/'):
+            file_path = file_path[1:]
+        self.execute_command_map({'firmware_upgrade': '{0}/{1}'.format(remote_host, file_path)})
+        self.execute_command_map({'reboot': []})
+        return "Firmware has been upgraded"
+
+    def send_command(self, command):
+        if command is None or command == '':
             raise Exception('JuniperJunosHandler', "Command cannot be empty")
-        if expected_str is None or expected_str == '':
-            expected_str = self._prompt
-        self._exit_configuration_mode()
-        return self._check_output_for_errors(self._send_command(cmd, expected_str=expected_str,
-                                                                timeout=timeout, is_need_default_prompt=False,
-                                                                retry_count=20))
+        self.cli_service.send_command(command)
+
+    def send_config_command(self, command):
+        if command is None or command == '':
+            raise Exception('JuniperJunosHandler', "Command cannot be empty")
+        self.cli_service.send_config_command(command)
 
     def discover(self):
         """Load device structure, and all required Attribute according to Networking Elements Standardization design
@@ -111,13 +129,13 @@ class JuniperJunosHandler(AutoloadOperationsInterface):
         self.logger.info('Start SNMP discovery Completed')
         return result
 
-    def normalize_output(self, output):
-        if output:
-            return output.replace(' ', self.SPACE).replace('\r\n', self.NEWLINE).replace('\n', self.NEWLINE).replace(
-                '\r', self.NEWLINE)
-        return None
+    # def normalize_output(self, output):
+    #     if output:
+    #         return output.replace(' ', self.SPACE).replace('\r\n', self.NEWLINE).replace('\n', self.NEWLINE).replace(
+    #             '\r', self.NEWLINE)
+    #     return None
 
     def shutdown(self):
         self.logger.info("shutting down")
-        self.execute_command_map({'shutdown': []}, self._send_command)
+        self.execute_command_map({'shutdown': []}, self.cli_service.send_command)
         return "Shutdown command completed"
