@@ -3,11 +3,8 @@ import time
 from cloudshell.cli.command_template import command_template_service
 from cloudshell.configuration.cloudshell_cli_binding_keys import CLI_SERVICE
 from cloudshell.configuration.cloudshell_shell_core_binding_keys import LOGGER, CONTEXT, API
-from cloudshell.configuration.cloudshell_snmp_binding_keys import SNMP_HANDLER
 import inject
 import re
-from cloudshell.networking.juniper.autoload.juniper_snmp_autoload import JuniperSnmpAutoload
-from cloudshell.networking.operations.interfaces.autoload_operations_interface import AutoloadOperationsInterface
 from cloudshell.networking.operations.interfaces.configuration_operations_interface import \
     ConfigurationOperationsInterface
 from cloudshell.networking.operations.interfaces.firmware_operations_interface import FirmwareOperationsInterface
@@ -15,30 +12,30 @@ from cloudshell.networking.operations.interfaces.power_operations_interface impo
 from cloudshell.networking.operations.interfaces.send_command_interface import SendCommandInterface
 
 
-class JuniperJunosHandler(AutoloadOperationsInterface, ConfigurationOperationsInterface, FirmwareOperationsInterface,
-                          PowerOperationsInterface, SendCommandInterface):
-    def __init__(self):
-        pass
+class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperationsInterface,
+                             PowerOperationsInterface, SendCommandInterface):
+
+    def __init__(self, context=None, api=None, cli_service=None, logger=None):
+        self._context = context
+        self._api = api
+        self._cli_service = cli_service
+        self._logger = logger
 
     @property
     def logger(self):
-        return inject.instance(LOGGER)
+        return self._logger or inject.instance(LOGGER)
 
     @property
     def cli_service(self):
-        return inject.instance(CLI_SERVICE)
-
-    @property
-    def snmp_handler(self):
-        return inject.instance(SNMP_HANDLER)
+        return self._cli_service or inject.instance(CLI_SERVICE)
 
     @property
     def context(self):
-        return inject.instance(CONTEXT)
+        return self._context or inject.instance(CONTEXT)
 
     @property
     def api(self):
-        return inject.instance(API)
+        return self._api or inject.instance(API)
 
     def execute_command_map(self, command_map, send_command_func=None):
         if send_command_func:
@@ -88,7 +85,7 @@ class JuniperJunosHandler(AutoloadOperationsInterface, ConfigurationOperationsIn
         self.execute_command_map({'save': full_path})
         return "Config file {0} has been saved".format(full_path)
 
-    def update_firmware(self, remote_host, file_path, size_of_firmware):
+    def update_firmware(self, remote_host, file_path, size_of_firmware=0):
         self.logger.info("Upgradeing firmware")
         if not remote_host or remote_host is '' or not file_path or file_path is '':
             raise Exception('JuniperJunosHandler', "Remote host or filepath cannot be empty")
@@ -109,31 +106,6 @@ class JuniperJunosHandler(AutoloadOperationsInterface, ConfigurationOperationsIn
         if command is None or command == '':
             raise Exception('JuniperJunosHandler', "Command cannot be empty")
         self.cli_service.send_config_command(command)
-
-    def discover(self):
-        """Load device structure, and all required Attribute according to Networking Elements Standardization design
-        :return: Attributes and Resources matrix,
-        currently in string format (matrix separated by '$', lines by '|', columns by ',')
-        """
-        # ToDo add voperation system validation
-        # if not self.is_valid_device_os():
-        # error_message = 'Incompatible driver! Please use correct resource driver for {0} operation system(s)'. \
-        #    format(str(tuple(self.supported_os)))
-        # self.logger.error(error_message)
-        # raise Exception(error_message)
-
-        self.logger.info('************************************************************************')
-        self.logger.info('Start SNMP discovery process .....')
-        generic_autoload = JuniperSnmpAutoload(self.snmp_handler, self.logger)
-        result = generic_autoload.discover_snmp()
-        self.logger.info('Start SNMP discovery Completed')
-        return result
-
-    # def normalize_output(self, output):
-    #     if output:
-    #         return output.replace(' ', self.SPACE).replace('\r\n', self.NEWLINE).replace('\n', self.NEWLINE).replace(
-    #             '\r', self.NEWLINE)
-    #     return None
 
     def shutdown(self):
         self.logger.info("shutting down")

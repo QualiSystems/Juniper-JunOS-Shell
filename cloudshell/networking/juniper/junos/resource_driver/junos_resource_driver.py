@@ -1,19 +1,34 @@
+from cloudshell.networking.juniper.junos.handler.juniper_junos_operations import JuniperJunosOperations
+from cloudshell.shell.core.driver_bootstrap import DriverBootstrap
 from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
 from cloudshell.networking.networking_resource_driver_interface import NetworkingResourceDriverInterface
-from cloudshell.networking.juniper.junos.junos_bootstrap import JunosBootstrap
 from cloudshell.networking.juniper.autoload.juniper_snmp_autoload_70 import JuniperSnmpAutoload70
-from cloudshell.shell.core.context_utils import context_from_args
 from cloudshell.networking.juniper.junos.handler.juniper_junos_connectivity_operations import \
     JuniperJunosConnectivityOperations
-
-import cloudshell.networking.juniper.junos.junos_config as package_config
+from cloudshell.shell.core.context_utils import ContextFromArgsMeta
+import cloudshell.networking.juniper.junos.junos_config as driver_config
+from abc import ABCMeta
 
 
 class JunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInterface):
+    __metaclass__ = type("ResolveMetaConflict", (ContextFromArgsMeta, ABCMeta), {})
+
     def __init__(self):
-        bootstrap = JunosBootstrap()
-        bootstrap.add_config(package_config)
+        bootstrap = DriverBootstrap()
+        bootstrap.add_config(driver_config)
         bootstrap.initialize()
+
+    @property
+    def connectivity_operations(self):
+        return JuniperJunosConnectivityOperations()
+
+    @property
+    def operations(self):
+        return JuniperJunosOperations()
+
+    @property
+    def autoload(self):
+        return JuniperSnmpAutoload70()
 
     def initialize(self, context):
         pass
@@ -21,30 +36,26 @@ class JunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInter
     def cleanup(self):
         pass
 
-    @context_from_args
     def ApplyConnectivityChanges(self, context, request):
-        connectivity_handler = JuniperJunosConnectivityOperations()
-        connectivity_handler.apply_connectivity_changes(request)
+        return self.connectivity_operations.apply_connectivity_changes(request)
 
     def shutdown(self, context):
-        pass
+        self.operations.shutdown()
 
-    @context_from_args
     def get_inventory(self, context):
-        juniper_autoload = JuniperSnmpAutoload70()
-        return juniper_autoload.discover_snmp()
+        return self.autoload.discover()
 
     def save(self, context, folder_path, configuration_type):
-        pass
+        self.operations.save_configuration(folder_path, configuration_type)
 
     def send_custom_config_command(self, context, command):
-        pass
+        return self.operations.send_config_command(command)
 
     def send_custom_command(self, context, command):
-        pass
+        return self.operations.send_command(command)
 
     def update_firmware(self, context, remote_host, file_path):
-        pass
+        return self.operations.update_firmware(remote_host, file_path)
 
     def restore(self, context, path, config_type, restore_method):
-        pass
+        return self.operations.restore_configuration(path, config_type, restore_method)

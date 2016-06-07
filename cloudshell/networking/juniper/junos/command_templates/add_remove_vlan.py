@@ -1,4 +1,4 @@
-from cloudshell.networking.parameters_service.command_template import CommandTemplate
+from cloudshell.cli.command_template.command_template import CommandTemplate
 
 ADD_REMOVE_VLAN_TEMPLATES = {'create_vlan': CommandTemplate('set vlans {0} vlan-id {1}', [r'.+', r'.+'],
                                                     ['Wrong vlan name', 'Wrong vlan id']),

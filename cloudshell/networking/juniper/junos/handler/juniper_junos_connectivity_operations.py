@@ -13,7 +13,9 @@ import cloudshell.cli.command_template.command_template_service as command_templ
 
 
 class JuniperJunosConnectivityOperations(ConnectivityOperations):
-    def __init__(self):
+    def __init__(self, cli_service=None, logger=None):
+        self._cli_service = cli_service
+        self._logger = logger
         command_template_service.add_templates(ADD_REMOVE_VLAN_TEMPLATES)
         command_template_service.add_templates(SAVE_RESTORE)
         command_template_service.add_templates(SHUTDOWN)
@@ -21,11 +23,11 @@ class JuniperJunosConnectivityOperations(ConnectivityOperations):
 
     @property
     def logger(self):
-        return inject.instance(LOGGER)
+        return self._cli_service or inject.instance(LOGGER)
 
     @property
     def cli_service(self):
-        return inject.instance(CLI_SERVICE)
+        return self._logger or inject.instance(CLI_SERVICE)
 
     def execute_command_map(self, command_map):
         command_template_service.execute_command_map(command_map, self.cli_service.send_config_command)
