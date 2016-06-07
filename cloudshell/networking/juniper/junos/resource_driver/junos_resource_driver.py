@@ -11,7 +11,7 @@ from abc import ABCMeta
 
 
 class JunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInterface):
-    __metaclass__ = type("ResolveMetaConflict", (ContextFromArgsMeta, ABCMeta), {})
+    __metaclass__ = ContextFromArgsMeta
 
     def __init__(self):
         bootstrap = DriverBootstrap()
