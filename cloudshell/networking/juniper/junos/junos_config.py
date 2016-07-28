@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from cloudshell.shell.core.dependency_injection.context_based_logger import get_logger_with_thread_id
 
 ERROR_MAP = OrderedDict(
     {r'[Ee]rror\s+saving\s+configuration': 'Save configuration error',
@@ -17,3 +18,6 @@ CONFIG_MODE_PROMPT = r'.*#\s*$'
 #                                         ('[Mm]ore', expected_actions.send_empty_string),
 #                                         ('[Pp]assword: *$', expected_actions.send_password)
 #                                         ])
+
+
+GET_LOGGER_FUNCTION = get_logger_with_thread_id
