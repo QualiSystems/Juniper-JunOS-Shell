@@ -1,3 +1,3 @@
-from cloudshell.networking.parameters_service.command_template import CommandTemplate
+from cloudshell.cli.command_template.command_template import CommandTemplate
 
 SHUTDOWN = {'shutdown': CommandTemplate('request system power-off', [], [])}
