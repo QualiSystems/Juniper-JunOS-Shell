@@ -1,9 +1,8 @@
 from cloudshell.networking.juniper.autoload.juniper_snmp_autoload import JuniperSnmpAutoload
 from cloudshell.networking.juniper.junos.handler.juniper_junos_operations import JuniperJunosOperations
-from cloudshell.shell.core.driver_bootstrap import DriverBootstrap
+from cloudshell.networking.juniper.junos.junos_driver_bootstrap import JunosDriverBootstrap
 from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
 from cloudshell.networking.networking_resource_driver_interface import NetworkingResourceDriverInterface
-# from cloudshell.networking.juniper.autoload.juniper_snmp_autoload_70 import JuniperSnmpAutoload70
 from cloudshell.networking.juniper.junos.handler.juniper_junos_connectivity_operations import \
     JuniperJunosConnectivityOperations
 from cloudshell.shell.core.context_utils import ContextFromArgsMeta
@@ -13,9 +12,11 @@ import cloudshell.networking.juniper.junos.junos_config as driver_config
 class JunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInterface):
     __metaclass__ = ContextFromArgsMeta
 
-    def __init__(self):
-        bootstrap = DriverBootstrap()
+    def __init__(self, config=None):
+        bootstrap = JunosDriverBootstrap()
         bootstrap.add_config(driver_config)
+        if config:
+            bootstrap.add_config(config)
         bootstrap.initialize()
 
     @property
