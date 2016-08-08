@@ -3,6 +3,9 @@ import time
 from cloudshell.cli.command_template import command_template_service
 from cloudshell.configuration.cloudshell_cli_binding_keys import CLI_SERVICE
 from cloudshell.configuration.cloudshell_shell_core_binding_keys import LOGGER, CONTEXT, API
+from cloudshell.networking.juniper.junos.command_templates.firmware import FIRMWARE_UPGRADE
+from cloudshell.networking.juniper.junos.command_templates.save_restore import SAVE_RESTORE
+from cloudshell.shell.core.context_utils import get_attribute_by_name
 import inject
 import re
 from cloudshell.networking.operations.interfaces.configuration_operations_interface import \
@@ -14,7 +17,6 @@ from cloudshell.networking.operations.interfaces.send_command_interface import S
 
 class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperationsInterface,
                              PowerOperationsInterface, SendCommandInterface):
-
     def __init__(self, context=None, api=None, cli_service=None, logger=None):
         self._context = context
         self._api = api
@@ -43,12 +45,14 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
         else:
             command_template_service.execute_command_map(command_map, self.cli_service.send_config_command)
 
-    def restore_configuration(self, source_file, config_type, restore_method='override', vrf=None):
-        if restore_method is '':
-            restore_method = 'override'
+    def restore_configuration(self, source_file, config_type='running', restore_method='override', vrf=None):
 
-        if not source_file or source_file is '':
-            raise Exception('JuniperJunosHandler', 'Config source cannot be empty')
+        if not source_file:
+            raise Exception(self.__class__.__name__, 'Config source cannot be empty')
+
+        if config_type.lower() != 'running':
+            raise Exception(self.__class__.__name__, 'Device does not support restoring in \"{}\" configuration type, '
+                                                     '\"running\" is only supported'.format(config_type or 'None'))
 
         restore_method = restore_method.lower()
         if restore_method == 'append':
@@ -56,34 +60,34 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
         elif restore_method == 'override':
             restore_type = restore_method
         else:
-            raise Exception('JuniperJunosHandler', 'Incorrect restore type')
+            raise Exception(self.__class__.__name__, 'Incorrect restore method')
 
-        self.execute_command_map({'restore': [restore_type, source_file]})
+        self.execute_command_map({SAVE_RESTORE['restore']: [restore_type, source_file]})
         self.cli_service.commit()
-        return "Config file {0} has been restored with restore type {1}".format(source_file, restore_type)
 
-    def save_configuration(self, destination_host, source_filename, vrf=None):
+    def save_configuration(self, destination_host, source_filename='running', vrf=None):
         system_name = self.context.resource.fullname
         system_name = re.sub(r'[\.\s]', '_', system_name)
 
-        if not source_filename or source_filename.lower() != 'startup':
-            source_filename = 'Running'
+        if source_filename.lower() != 'running':
+            raise Exception(self.__class__.__name__, 'Device does not support saving \"{}\" '
+                                                     'configuration type, \"running\" is only supported'.format(
+                source_filename or 'None'))
 
         file_name = "{0}-{1}-{2}".format(system_name, source_filename, time.strftime("%d%m%y-%H%M%S", time.localtime()))
-        if not destination_host or destination_host is '':
-            backup_location = self.api.GetAttributeValue(self.context.resource.fullname,
-                                                         'Backup Location').Value
-            if backup_location and backup_location is not '':
+        if not destination_host:
+            backup_location = get_attribute_by_name('Backup Location')
+            if backup_location:
                 destination_host = backup_location
             else:
-                raise Exception('JuniperJunosHandler', "Backup location or path is empty")
+                raise Exception(self.__class__.__name__, "Backup location or path is empty")
 
         if destination_host.endswith('/'):
             destination_host = destination_host[:-1]
         full_path = "{0}/{1}".format(destination_host, file_name)
         self.logger.info("Save configuration to file {0}".format(full_path))
-        self.execute_command_map({'save': full_path})
-        return "Config file {0} has been saved".format(full_path)
+        self.execute_command_map({SAVE_RESTORE['save']: full_path})
+        return full_path
 
     def update_firmware(self, remote_host, file_path, size_of_firmware=0):
         self.logger.info("Upgradeing firmware")
@@ -93,21 +97,19 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
             remote_host = remote_host[:-1]
         if file_path.startswith('/'):
             file_path = file_path[1:]
-        self.execute_command_map({'firmware_upgrade': '{0}/{1}'.format(remote_host, file_path)})
-        self.execute_command_map({'reboot': []})
-        return "Firmware has been upgraded"
+        self.execute_command_map({FIRMWARE_UPGRADE['firmware_upgrade']: '{0}/{1}'.format(remote_host, file_path)})
+        self.execute_command_map({FIRMWARE_UPGRADE['reboot']: []})
 
     def send_command(self, command):
-        if command is None or command == '':
-            raise Exception('JuniperJunosHandler', "Command cannot be empty")
-        self.cli_service.send_command(command)
+        if not command:
+            raise Exception(self.__class__.__name__, "Command cannot be empty")
+        return self.cli_service.send_command(command)
 
     def send_config_command(self, command):
-        if command is None or command == '':
-            raise Exception('JuniperJunosHandler', "Command cannot be empty")
-        self.cli_service.send_config_command(command)
+        if not command:
+            raise Exception(self.__class__.__name__, "Command cannot be empty")
+        return self.cli_service.send_config_command(command)
 
     def shutdown(self):
         self.logger.info("shutting down")
         self.execute_command_map({'shutdown': []}, self.cli_service.send_command)
-        return "Shutdown command completed"
