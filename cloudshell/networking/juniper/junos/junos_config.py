@@ -47,3 +47,8 @@ def juniper_default_actions(session):
 
 
 DEFAULT_ACTIONS = juniper_default_actions
+
+"""Port description char replacement, order is important"""
+PORT_NAME_CHAR_REPLACEMENT = OrderedDict()
+PORT_NAME_CHAR_REPLACEMENT[':'] = '--'
+PORT_NAME_CHAR_REPLACEMENT['/'] = '-'
