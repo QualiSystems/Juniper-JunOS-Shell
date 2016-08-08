@@ -5,6 +5,7 @@ from cloudshell.networking.juniper.junos.command_templates.firmware import FIRMW
 from cloudshell.networking.juniper.junos.command_templates.save_restore import SAVE_RESTORE
 from cloudshell.networking.juniper.junos.command_templates.shutdown import SHUTDOWN
 from cloudshell.networking.operations.connectivity_operations import ConnectivityOperations
+from cloudshell.shell.core.config_utils import override_attributes_from_config
 import inject
 from cloudshell.configuration.cloudshell_cli_binding_keys import CLI_SERVICE
 from cloudshell.configuration.cloudshell_shell_core_binding_keys import LOGGER, API, CONTEXT
@@ -13,6 +14,8 @@ import cloudshell.cli.command_template.command_template_service as command_templ
 
 
 class JuniperJunosConnectivityOperations(ConnectivityOperations):
+    PORT_NAME_CHAR_REPLACEMENT = {'/': '-'}
+
     def __init__(self, cli_service=None, logger=None):
         self._cli_service = cli_service
         self._logger = logger
@@ -21,13 +24,16 @@ class JuniperJunosConnectivityOperations(ConnectivityOperations):
         command_template_service.add_templates(SHUTDOWN)
         command_template_service.add_templates(FIRMWARE_UPGRADE)
 
+        overridden_config = override_attributes_from_config(JuniperJunosConnectivityOperations)
+        self._port_name_char_replacement = overridden_config.PORT_NAME_CHAR_REPLACEMENT
+
     @property
     def logger(self):
-        return self._cli_service or inject.instance(LOGGER)
+        return self._logger or inject.instance(LOGGER)
 
     @property
     def cli_service(self):
-        return self._logger or inject.instance(CLI_SERVICE)
+        return self._cli_service or inject.instance(CLI_SERVICE)
 
     def execute_command_map(self, command_map):
         command_template_service.execute_command_map(command_map, self.cli_service.send_config_command)
@@ -49,18 +55,24 @@ class JuniperJunosConnectivityOperations(ConnectivityOperations):
         for port in ports.split('|'):
             port_resource_map = api.GetResourceDetails(context.resource.name)
             temp_port_name = self._get_resource_full_name(port, port_resource_map)
-            if not temp_port_name or temp_port_name is '':
+            if not temp_port_name:
                 self.logger.error('Interface was not found')
                 raise Exception('Interface {0} was not found'.format(port))
-            port_name_splited = temp_port_name.split('/')[-1].split('-', 1)
-            if len(port_name_splited) > 1:
-                port_name = "{0}-{1}".format(port_name_splited[0], port_name_splited[1].replace('-', '/'))
-            elif len(port_name_splited) == 1:
-                port_name = "{0}".format(port_name_splited[0])
-            else:
-                raise Exception('JuniperJunosHandler', 'Get incorrect port description by API')
-            port_list.append(port_name)
+            port_list.append(self._convert_port_name(temp_port_name))
         return port_list
+
+    def _convert_port_name(self, port_description):
+        port_name_splitted = port_description.split('/')[-1].split('-', 1)
+        if len(port_name_splitted) == 2:
+            port_suffix, port_location = port_name_splitted
+            for replacement, value in self._port_name_char_replacement.iteritems():
+                port_location = port_location.replace(value, replacement)
+            port_name = "{0}-{1}".format(port_suffix, port_location)
+        elif len(port_name_splitted) == 1:
+            port_name = port_name_splitted[0]
+        else:
+            raise Exception(self.__class__.__name__, 'Incorrect port description format')
+        return port_name
 
     def remove_vlan(self, vlan_range, port_list, port_mode):
         self.logger.info('Remove vlan invoked')
