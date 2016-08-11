@@ -18,6 +18,7 @@ setup(
     packages=find_packages(),
     install_requires=required,
     tests_require=required_for_tests,
+    test_suite='nose.collector',
     version=version_from_file,
     description='QualiSystems Juniper JUNOS package',
     include_package_data=True

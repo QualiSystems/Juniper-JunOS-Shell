@@ -12,7 +12,10 @@ import cloudshell.networking.juniper.junos.junos_config as driver_config
 class JunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInterface):
     __metaclass__ = ContextFromArgsMeta
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, connectivity_operations=None, operations=None, autoload=None):
+        self._connectivity_operations = connectivity_operations
+        self._operations = operations
+        self._autoload = autoload
         bootstrap = JunosDriverBootstrap()
         bootstrap.add_config(driver_config)
         if config:
@@ -21,15 +24,15 @@ class JunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInter
 
     @property
     def connectivity_operations(self):
-        return JuniperJunosConnectivityOperations()
+        return self._connectivity_operations or JuniperJunosConnectivityOperations()
 
     @property
     def operations(self):
-        return JuniperJunosOperations()
+        return self._operations or JuniperJunosOperations()
 
     @property
     def autoload(self):
-        return JuniperSnmpAutoload()
+        return self._autoload or JuniperSnmpAutoload()
 
     def initialize(self, context):
         pass
