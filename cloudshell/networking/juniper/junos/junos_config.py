@@ -7,7 +7,7 @@ from cloudshell.snmp.quali_snmp_cached import QualiSnmpCached
 ERROR_MAP = OrderedDict(
     {r'[Ee]rror\s+saving\s+configuration': 'Save configuration error',
      r'syntax\s+error': 'Syntax error',
-     r'[Uu]nknown\s+command': 'Uncnown command',
+     r'[Uu]nknown\s+command': 'Unknown command',
      r'[Ee]rror[\s+\:].+': 'Error'})
 
 DEFAULT_PROMPT = '[%>#]\s*$|[%>#]\s*\n'
