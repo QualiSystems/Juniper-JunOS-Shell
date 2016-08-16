@@ -5,6 +5,7 @@ from cloudshell.configuration.cloudshell_cli_binding_keys import CLI_SERVICE
 from cloudshell.configuration.cloudshell_shell_core_binding_keys import LOGGER, CONTEXT, API
 from cloudshell.networking.juniper.junos.command_templates.firmware import FIRMWARE_UPGRADE
 from cloudshell.networking.juniper.junos.command_templates.save_restore import SAVE_RESTORE
+from cloudshell.networking.juniper.junos.command_templates.shutdown import SHUTDOWN
 from cloudshell.shell.core.context_utils import get_attribute_by_name
 import inject
 import re
@@ -112,4 +113,4 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
 
     def shutdown(self):
         self.logger.info("shutting down")
-        self.execute_command_map({'shutdown': []}, self.cli_service.send_command)
+        self.execute_command_map({SHUTDOWN['shutdown']: []}, self.cli_service.send_command)
