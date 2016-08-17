@@ -13,6 +13,15 @@ class JunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInter
     __metaclass__ = ContextFromArgsMeta
 
     def __init__(self, config=None, connectivity_operations=None, operations=None, autoload=None):
+        """
+        Constructor
+
+        :param config: use for test to override configuration attributes
+        :param connectivity_operations: use for test to override connectivity_operations instance
+        :param operations: use for test to override operations instance
+        :param autoload: use for test to override autoload instance
+        :return:
+        """
         self._connectivity_operations = connectivity_operations
         self._operations = operations
         self._autoload = autoload

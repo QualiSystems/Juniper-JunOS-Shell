@@ -7,13 +7,18 @@ import inject
 
 class JunosDriverBootstrap(DriverBootstrap):
     def bindings(self, binder):
-        """Binding for CLI service"""
+        """
+        Bindings for junos driver
+        :param binder:
+        :return:
+        """
+        """Binding for SNMP service"""
         try:
             binder.bind_to_provider(SNMP_HANDLER, self._config.SNMP_HANDLER_FACTORY)
         except inject.InjectorException:
             pass
 
-        """Binding for CLI service"""
+        """Binding for CLI service, use JuniperCliService"""
         try:
             binder.bind_to_constructor(CLI_SERVICE, JuniperCliService)
         except inject.InjectorException:
