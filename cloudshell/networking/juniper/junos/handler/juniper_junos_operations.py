@@ -4,7 +4,9 @@ from cloudshell.cli.command_template import command_template_service
 from cloudshell.configuration.cloudshell_cli_binding_keys import CLI_SERVICE
 from cloudshell.configuration.cloudshell_shell_core_binding_keys import LOGGER, CONTEXT, API
 from cloudshell.networking.juniper.junos.command_templates.firmware import FIRMWARE_UPGRADE
-from cloudshell.networking.juniper.junos.command_templates.save_restore import SAVE_RESTORE
+from cloudshell.networking.juniper.junos.command_templates.reboot import REBOOT
+import cloudshell.networking.juniper.junos.command_templates.save_restore as save_restore
+from cloudshell.networking.juniper.junos.command_templates.shutdown import SHUTDOWN
 from cloudshell.shell.core.context_utils import get_attribute_by_name
 import inject
 import re
@@ -62,7 +64,7 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
         else:
             raise Exception(self.__class__.__name__, 'Incorrect restore method')
 
-        self.execute_command_map({SAVE_RESTORE['restore']: [restore_type, source_file]})
+        self.execute_command_map({save_restore.RESTORE: [restore_type, source_file]})
         self.cli_service.commit()
 
     def save_configuration(self, destination_host, source_filename='running', vrf=None):
@@ -76,7 +78,7 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
 
         file_name = "{0}-{1}-{2}".format(system_name, source_filename, time.strftime("%d%m%y-%H%M%S", time.localtime()))
         if not destination_host:
-            backup_location = get_attribute_by_name('Backup Location')
+            backup_location = get_attribute_by_name('Backup Location', context=self.context)
             if backup_location:
                 destination_host = backup_location
             else:
@@ -86,7 +88,7 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
             destination_host = destination_host[:-1]
         full_path = "{0}/{1}".format(destination_host, file_name)
         self.logger.info("Save configuration to file {0}".format(full_path))
-        self.execute_command_map({SAVE_RESTORE['save']: full_path})
+        self.execute_command_map({save_restore.SAVE: full_path})
         return full_path
 
     def update_firmware(self, remote_host, file_path, size_of_firmware=0):
@@ -97,8 +99,8 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
             remote_host = remote_host[:-1]
         if file_path.startswith('/'):
             file_path = file_path[1:]
-        self.execute_command_map({FIRMWARE_UPGRADE['firmware_upgrade']: '{0}/{1}'.format(remote_host, file_path)})
-        self.execute_command_map({FIRMWARE_UPGRADE['reboot']: []})
+        self.execute_command_map({FIRMWARE_UPGRADE: '{0}/{1}'.format(remote_host, file_path)})
+        self.execute_command_map({REBOOT: []})
 
     def send_command(self, command):
         if not command:
@@ -112,4 +114,4 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
 
     def shutdown(self):
         self.logger.info("shutting down")
-        self.execute_command_map({'shutdown': []}, self.cli_service.send_command)
+        self.execute_command_map({SHUTDOWN: []}, self.cli_service.send_command)

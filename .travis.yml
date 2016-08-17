@@ -4,7 +4,7 @@ python:
 
 install:
     - pip install --extra-index-url https://testpypi.python.org/pypi -r requirements.txt
-    - pip install --extra-index-url https://testpypi.python.org/pypi -r test_requirements.txt
+    - pip install -r test_requirements.txt
     - pip install coveralls
 
 script:
