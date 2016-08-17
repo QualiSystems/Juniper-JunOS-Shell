@@ -1,9 +1,7 @@
 import collections
 
-from cloudshell.networking.juniper.junos.command_templates.add_remove_vlan import ADD_REMOVE_VLAN_TEMPLATES
-from cloudshell.networking.juniper.junos.command_templates.firmware import FIRMWARE_UPGRADE
-from cloudshell.networking.juniper.junos.command_templates.save_restore import SAVE_RESTORE
-from cloudshell.networking.juniper.junos.command_templates.shutdown import SHUTDOWN
+import cloudshell.networking.juniper.junos.command_templates.add_remove_vlan as add_remove_vlan
+
 from cloudshell.networking.operations.connectivity_operations import ConnectivityOperations
 from cloudshell.shell.core.config_utils import override_attributes_from_config
 import inject
@@ -19,10 +17,6 @@ class JuniperJunosConnectivityOperations(ConnectivityOperations):
     def __init__(self, cli_service=None, logger=None):
         self._cli_service = cli_service
         self._logger = logger
-        command_template_service.add_templates(ADD_REMOVE_VLAN_TEMPLATES)
-        command_template_service.add_templates(SAVE_RESTORE)
-        command_template_service.add_templates(SHUTDOWN)
-        command_template_service.add_templates(FIRMWARE_UPGRADE)
 
         overridden_config = override_attributes_from_config(JuniperJunosConnectivityOperations)
         self._port_name_char_replacement = overridden_config.PORT_NAME_CHAR_REPLACEMENT
@@ -178,36 +172,36 @@ class JuniperJunosConnectivityOperations(ConnectivityOperations):
 
     def _create_vlan_flow(self, vlan_name, vlan_id):
         cmd_map = collections.OrderedDict()
-        cmd_map['create_vlan'] = [vlan_name, vlan_id]
+        cmd_map[add_remove_vlan.CREATE_VLAN] = [vlan_name, vlan_id]
         return cmd_map
 
     def _create_vlan_range_flow(self, vlan_range_name, vlan_range):
         cmd_map = collections.OrderedDict()
-        cmd_map['create_vlan_range'] = [vlan_range_name, vlan_range]
+        cmd_map[add_remove_vlan.CREATE_VLAN_RANGE] = [vlan_range_name, vlan_range]
         return cmd_map
 
     def _create_qnq_vlan_flow(self, vlan_name, vlan_id):
         cmd_map = collections.OrderedDict()
-        cmd_map['create_vlan'] = [vlan_name, vlan_id]
-        cmd_map['create_vlan_qinq'] = [vlan_name]
+        cmd_map[add_remove_vlan.CREATE_VLAN] = [vlan_name, vlan_id]
+        cmd_map[add_remove_vlan.CREATE_VLAN_QNQ] = [vlan_name]
         return cmd_map
 
     def _set_vlan_to_interface_flow(self, port, type, vlan_name):
         cmd_map = collections.OrderedDict()
-        cmd_map['set_vlan_to_interface'] = [port, type.lower(), vlan_name]
+        cmd_map[add_remove_vlan.SET_VLAN_TO_INTERFACE] = [port, type.lower(), vlan_name]
         return cmd_map
 
     def _delete_vlan_on_interface_flow(self, port, vlan_name):
         cmd_map = collections.OrderedDict()
-        cmd_map['delete_vlan_on_interface'] = [port, vlan_name]
+        cmd_map[add_remove_vlan.DELETE_VLAN_ON_INTERFACE] = [port, vlan_name]
         return cmd_map
 
     def _delete_port_mode_on_interface_flow(self, port):
         cmd_map = collections.OrderedDict()
-        cmd_map['delete_port_mode_on_interface'] = [port]
+        cmd_map[add_remove_vlan.DELETE_PORT_MODE_ON_INTERFACE] = [port]
         return cmd_map
 
     def _delete_vlan_flow(self, vlan_name):
         cmd_map = collections.OrderedDict()
-        cmd_map['delete_vlan'] = [vlan_name]
+        cmd_map[add_remove_vlan.DELETE_VLAN] = [vlan_name]
         return cmd_map
