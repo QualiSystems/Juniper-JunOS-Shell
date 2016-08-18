@@ -1,9 +1,11 @@
 from unittest import TestCase
 
-from mock import MagicMock as Mock
+from cloudshell.networking.juniper.junos.command_templates.reboot import REBOOT
+from mock import MagicMock as Mock, call
 from cloudshell.networking.juniper.junos.handler.juniper_junos_operations import JuniperJunosOperations
 import cloudshell.networking.juniper.junos.command_templates.save_restore as save_restore
 from cloudshell.networking.juniper.junos.command_templates.shutdown import SHUTDOWN
+from cloudshell.networking.juniper.junos.command_templates.firmware import FIRMWARE_UPGRADE
 
 
 class TestJuniperOperations(TestCase):
@@ -103,3 +105,29 @@ class TestJuniperOperations(TestCase):
         self._operations_instance.restore_configuration(url, config_type, restore_method=restore_method)
         self._cli_service.send_config_command.assert_called_once_with(
             save_restore.RESTORE.get_command(restore_method, url), error_map=None, expected_map=None)
+
+    # update_firmware
+    def test_update_firmware_none_remote_host(self):
+        remote_host = None
+        file_path = 'test'
+        self.assertRaises(Exception, self._operations_instance.update_firmware, remote_host, file_path)
+
+    def test_update_firmware_none_file_path(self):
+        remote_host = 'test'
+        file_path = None
+        self.assertRaises(Exception, self._operations_instance.update_firmware, remote_host, file_path)
+
+    def test_update_firmware_remove_slashes(self):
+        remote_host = 'ftp://test.com/'
+        file_path = '/test_path/test_file'
+        self._operations_instance.update_firmware(remote_host, file_path)
+        self._cli_service.send_config_command.assert_any_call(
+            FIRMWARE_UPGRADE.get_command(remote_host[:-1] + file_path), error_map=None, expected_map=None)
+
+    def test_update_firmware_command_calls(self):
+        remote_host = 'ftp://test.com'
+        file_path = '/test_path/test_file'
+        self._operations_instance.update_firmware(remote_host, file_path)
+        self._cli_service.send_config_command.assert_has_calls([
+            call(FIRMWARE_UPGRADE.get_command(remote_host + file_path), error_map=None, expected_map=None),
+            call(REBOOT.get_command(), error_map=None, expected_map=None)], any_order=True)
