@@ -93,8 +93,8 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
 
     def update_firmware(self, remote_host, file_path, size_of_firmware=0):
         self.logger.info("Upgradeing firmware")
-        if not remote_host or remote_host is '' or not file_path or file_path is '':
-            raise Exception('JuniperJunosHandler', "Remote host or filepath cannot be empty")
+        if not remote_host or not file_path:
+            raise Exception(self.__class__.__name__, "Remote host or filepath cannot be empty")
         if remote_host.endswith('/'):
             remote_host = remote_host[:-1]
         if file_path.startswith('/'):
