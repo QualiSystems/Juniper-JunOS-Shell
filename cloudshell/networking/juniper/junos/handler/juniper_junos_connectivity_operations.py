@@ -105,8 +105,7 @@ class JuniperJunosConnectivityOperations(ConnectivityOperations):
 
     def add_vlan(self, vlan_range, port_list, port_mode, qnq=False, ctag=''):
         self.logger.info('Vlan Configuration Started')
-        self.logger.info(
-            'Ports: ' + str(port_list) + ', Vlan_range: ' + vlan_range + ', Typa: ' + port_mode)
+        self.logger.info('Ports: {0}, Vlan_range: {1}, Type: {2}'.format(port_list, vlan_range, port_mode))
         if len(port_list) < 1:
             raise Exception('Port list is empty')
         if not vlan_range:

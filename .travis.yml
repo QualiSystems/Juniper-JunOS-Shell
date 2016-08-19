@@ -9,7 +9,7 @@ install:
 
 script:
     - python setup.py develop
-    - python runtests.py --with-coverage --cover-package=cloudshell.networking.juniper.junos
+    - python runtests.py --with-coverage --cover-package=cloudshell
 
 after_success:
     - coveralls
