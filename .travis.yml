@@ -9,7 +9,7 @@ install:
 
 script:
     - python setup.py develop
-    - python runtests.py --with-coverage  --cover-package=package
+    - python runtests.py --with-coverage --cover-package=cloudshell
 
 after_success:
     - coveralls
