@@ -84,7 +84,7 @@ class JuniperJunosConnectivityOperations(ConnectivityOperations):
 
     def remove_vlan(self, vlan_range, port_list, port_mode):
         self.logger.info('Remove vlan invoked')
-        self.logger.info('Ports: {0}, Vlan_range: {1}, Typa: {2}'.format(port_list, vlan_range, port_mode))
+        self.logger.info('Ports: {0}, Vlan_range: {1}, Type: {2}'.format(port_list, vlan_range, port_mode))
         if len(port_list) < 1:
             raise Exception('Port list is empty')
         if not vlan_range:
