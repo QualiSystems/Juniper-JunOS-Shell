@@ -1,12 +1,12 @@
 import collections
 
 import cloudshell.networking.juniper.junos.command_templates.add_remove_vlan as add_remove_vlan
-
 from cloudshell.networking.operations.connectivity_operations import ConnectivityOperations
 from cloudshell.shell.core.config_utils import override_attributes_from_config
+from cloudshell.shell.core.context_utils import get_resource_context_attribute
 import inject
 from cloudshell.configuration.cloudshell_cli_binding_keys import CLI_SERVICE
-from cloudshell.configuration.cloudshell_shell_core_binding_keys import LOGGER, API, CONTEXT
+from cloudshell.configuration.cloudshell_shell_core_binding_keys import LOGGER, API, CONTEXT, CONFIG
 import re
 import cloudshell.cli.command_template.command_template_service as command_template_service
 
@@ -14,11 +14,14 @@ import cloudshell.cli.command_template.command_template_service as command_templ
 class JuniperJunosConnectivityOperations(ConnectivityOperations):
     PORT_NAME_CHAR_REPLACEMENT = {'/': '-'}
 
-    def __init__(self, cli_service=None, logger=None):
+    def __init__(self, cli_service=None, logger=None, api=None, context=None, config=None):
         self._cli_service = cli_service
         self._logger = logger
+        self._api = api
+        self._context = context
+        self._config = config
 
-        overridden_config = override_attributes_from_config(JuniperJunosConnectivityOperations)
+        overridden_config = override_attributes_from_config(JuniperJunosConnectivityOperations, config=self.config)
         self._port_name_char_replacement = overridden_config.PORT_NAME_CHAR_REPLACEMENT
 
     @property
@@ -28,6 +31,18 @@ class JuniperJunosConnectivityOperations(ConnectivityOperations):
     @property
     def cli_service(self):
         return self._cli_service or inject.instance(CLI_SERVICE)
+
+    @property
+    def api(self):
+        return self._api or inject.instance(API)
+
+    @property
+    def context(self):
+        return self._context or inject.instance(CONTEXT)
+
+    @property
+    def config(self):
+        return self._config or inject.instance(CONFIG)
 
     def execute_command_map(self, command_map):
         command_template_service.execute_command_map(command_map, self.cli_service.send_config_command)
@@ -43,11 +58,10 @@ class JuniperJunosConnectivityOperations(ConnectivityOperations):
                 return result
         return result
 
-    @inject.params(api=API, context=CONTEXT)
-    def _get_ports_by_resources_path(self, ports, context, api):
+    def _get_ports_by_resources_path(self, ports):
         port_list = []
         for port in ports.split('|'):
-            port_resource_map = api.GetResourceDetails(context.resource.name)
+            port_resource_map = self.api.GetResourceDetails(get_resource_context_attribute('name', self.context))
             temp_port_name = self._get_resource_full_name(port, port_resource_map)
             if not temp_port_name:
                 self.logger.error('Interface was not found')
@@ -70,11 +84,10 @@ class JuniperJunosConnectivityOperations(ConnectivityOperations):
 
     def remove_vlan(self, vlan_range, port_list, port_mode):
         self.logger.info('Remove vlan invoked')
-        self.logger.info(
-            'Ports: ' + port_list + ', Vlan_range: ' + vlan_range + ', Typa: ' + port_mode + ', Additional_info: ')
+        self.logger.info('Ports: {0}, Vlan_range: {1}, Typa: {2}'.format(port_list, vlan_range, port_mode))
         if len(port_list) < 1:
             raise Exception('Port list is empty')
-        if vlan_range == '':
+        if not vlan_range:
             raise Exception('Vlan range is empty')
         vlan_map = {"vlan-" + name.strip(): name.strip() for name in vlan_range.split(',')}
         self.logger.info('Vlan map: ' + str(vlan_map))
@@ -93,10 +106,10 @@ class JuniperJunosConnectivityOperations(ConnectivityOperations):
     def add_vlan(self, vlan_range, port_list, port_mode, qnq=False, ctag=''):
         self.logger.info('Vlan Configuration Started')
         self.logger.info(
-            'Ports: ' + port_list + ', Vlan_range: ' + vlan_range + ', Typa: ' + port_mode)
+            'Ports: ' + str(port_list) + ', Vlan_range: ' + vlan_range + ', Typa: ' + port_mode)
         if len(port_list) < 1:
             raise Exception('Port list is empty')
-        if vlan_range == '':
+        if not vlan_range:
             raise Exception('Vlan range is empty')
         vlan_map = {"vlan-" + name.strip(): name.strip() for name in vlan_range.split(',')}
         self.logger.info('Vlan map: ' + str(vlan_map))
@@ -110,7 +123,7 @@ class JuniperJunosConnectivityOperations(ConnectivityOperations):
             self._add_vlans_on_port(port, vlan_map.keys(), port_mode)
 
         self.cli_service.commit()
-        self.cli_service.exit_configuration_mode()
+        # self.cli_service.exit_configuration_mode()
 
         self.logger.info('Vlan {0} was assigned to the interfaces {1}'.format(vlan_range, port_list))
         return 'Vlan Configuration Completed'
