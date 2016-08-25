@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, main
 
 from cloudshell.networking.juniper.junos.command_templates.reboot import REBOOT
 from mock import MagicMock as Mock, call
@@ -13,8 +13,11 @@ class TestJuniperOperations(TestCase):
         self._cli_service = Mock()
         self._logger = Mock()
         self._context = Mock()
+        self._session = Mock()
+        self._config = Mock()
         self._operations_instance = JuniperJunosOperations(cli_service=self._cli_service, logger=self._logger,
-                                                           context=self._context)
+                                                           context=self._context, session=self._session,
+                                                           config=self._config)
 
     # send_custom_command
     def test_call_send_custom_command(self):
@@ -109,25 +112,17 @@ class TestJuniperOperations(TestCase):
     # update_firmware
     def test_update_firmware_none_remote_host(self):
         remote_host = None
-        file_path = 'test'
-        self.assertRaises(Exception, self._operations_instance.update_firmware, remote_host, file_path)
+        self.assertRaises(Exception, self._operations_instance.update_firmware, remote_host)
 
-    def test_update_firmware_none_file_path(self):
-        remote_host = 'test'
-        file_path = None
-        self.assertRaises(Exception, self._operations_instance.update_firmware, remote_host, file_path)
 
-    def test_update_firmware_remove_slashes(self):
-        remote_host = 'ftp://test.com/'
-        file_path = '/test_path/test_file'
-        self._operations_instance.update_firmware(remote_host, file_path)
-        self._cli_service.send_config_command.assert_any_call(
-            FIRMWARE_UPGRADE.get_command(remote_host[:-1] + file_path), error_map=None, expected_map=None)
 
     def test_update_firmware_command_calls(self):
-        remote_host = 'ftp://test.com'
-        file_path = '/test_path/test_file'
-        self._operations_instance.update_firmware(remote_host, file_path)
-        self._cli_service.send_config_command.assert_has_calls([
-            call(FIRMWARE_UPGRADE.get_command(remote_host + file_path), error_map=None, expected_map=None),
-            call(REBOOT.get_command(), error_map=None, expected_map=None)], any_order=True)
+        remote_host = 'ftp://test.com/test_path/test_file'
+        self._session.send_line.side_effect = Exception('Test')
+        self._operations_instance._wait_session_up = Mock()
+        self._operations_instance.update_firmware(remote_host)
+        self._cli_service.send_command.assert_called()
+
+        # self._cli_service.send_command.assert_has_calls([
+        #     call(FIRMWARE_UPGRADE.get_command(remote_host), error_map=None, expected_map=None),
+        #     call(REBOOT.get_command(), error_map=None, expected_map=None)], any_order=True)
