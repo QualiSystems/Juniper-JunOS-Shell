@@ -23,6 +23,7 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
                              PowerOperationsInterface, SendCommandInterface):
     SESSION_WAIT_TIMEOUT = 600
     DEFAULT_PROMPT = '[%>#]\s*$|[%>#]\s*\n'
+    ERROR_MAP = {}
 
     def __init__(self, context=None, api=None, cli_service=None, logger=None, config=None, session=None):
         self._context = context
@@ -34,6 +35,7 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
         overridden_config = override_attributes_from_config(JuniperJunosOperations, config=self.config)
         self._session_wait_timeout = overridden_config.SESSION_WAIT_TIMEOUT
         self._default_prompt = overridden_config.DEFAULT_PROMPT
+        self._error_map = overridden_config.ERROR_MAP
 
     @property
     def logger(self):
@@ -59,14 +61,13 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
     def session(self):
         return self._session or inject.instance(SESSION)
 
-    def execute_command_map(self, command_map, send_command_func=None, expected_map=None):
+    def execute_command_map(self, command_map, send_command_func=None, **kwargs):
         if send_command_func:
-            command_template_service.execute_command_map(command_map, send_command_func=send_command_func,
-                                                         expected_map=expected_map)
+            command_template_service.execute_command_map(command_map, send_command_func=send_command_func, **kwargs)
         else:
             command_template_service.execute_command_map(command_map,
                                                          send_command_func=self.cli_service.send_config_command,
-                                                         expected_map=expected_map)
+                                                         **kwargs)
 
     def restore_configuration(self, source_file, config_type='running', restore_method='override', vrf=None):
 
@@ -120,7 +121,8 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
         flow = OrderedDict()
         flow[FIRMWARE_UPGRADE] = [remote_host]
         flow[REBOOT] = []
-        self.execute_command_map(flow, send_command_func=self.cli_service.send_command, expected_map=expected_map)
+        self.execute_command_map(flow, send_command_func=self.cli_service.send_command, expected_map=expected_map,
+                                 error_map=self._error_map)
         session = self.session
         if session.session_type.lower() != 'console':
             self._wait_session_up(self.session)
