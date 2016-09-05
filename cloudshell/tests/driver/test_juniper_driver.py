@@ -33,20 +33,32 @@ class TestJuniperDriver(TestCase):
 
     def test_call_save(self):
         self._driver_instance.save(Mock(), 'test', 'test')
-        self.assertTrue(self._operations.save_configuration.called)
+        self.assertTrue(self._operations.save.called)
 
     def test_call_restore(self):
         self._driver_instance.restore(Mock(), 'test', 'test', 'test')
-        self.assertTrue(self._operations.restore_configuration.called)
+        self.assertTrue(self._operations.restore.called)
 
     def test_call_update_firmware(self):
         self._driver_instance.update_firmware(Mock(), 'test', 'test')
-        self.assertTrue(self._operations.update_firmware.called)
+        self.assertTrue(self._operations.load_firmware.called)
+
+    def test_call_load_firmware(self):
+        self._driver_instance.update_firmware(Mock(), 'test', 'test')
+        self.assertTrue(self._operations.load_firmware.called)
+
+    def test_call_run_custom_command(self):
+        self._driver_instance.run_custom_command(Mock(), 'test')
+        self.assertTrue(self._operations.run_custom_command.called)
+
+    def test_call_run_custom_config_command(self):
+        self._driver_instance.run_custom_config_command(Mock(), 'test')
+        self.assertTrue(self._operations.run_custom_config_command.called)
 
     def test_call_send_custom_command(self):
         self._driver_instance.send_custom_command(Mock(), 'test')
-        self.assertTrue(self._operations.send_command.called)
+        self.assertTrue(self._operations.run_custom_command.called)
 
     def test_call_send_custom_config_command(self):
         self._driver_instance.send_custom_config_command(Mock(), 'test')
-        self.assertTrue(self._operations.send_config_command.called)
+        self.assertTrue(self._operations.run_custom_config_command.called)

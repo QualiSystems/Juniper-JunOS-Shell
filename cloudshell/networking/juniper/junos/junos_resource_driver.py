@@ -67,19 +67,37 @@ class JunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInter
     def get_inventory(self, context):
         return self.autoload.discover()
 
-    def save(self, context, folder_path, configuration_type):
-        self.operations.save_configuration(folder_path, configuration_type)
+    def save(self, context, folder_path, configuration_type, vrf_management_name=None):
+        self.operations.save(folder_path, configuration_type, vrf_management_name)
 
-    def send_custom_config_command(self, context, command):
-        return self.operations.send_config_command(command)
+    def run_custom_config_command(self, context, custom_command):
+        return self.operations.run_custom_config_command(custom_command)
 
-    def send_custom_command(self, context, command):
-        return self.operations.send_command(command)
+    def run_custom_command(self, context, custom_command):
+        return self.operations.run_custom_command(custom_command)
+
+    def orchestration_save(self, context, mode, custom_params=None):
+        if not mode:
+            mode = 'shallow'
+
+        return self.operations.orchestration_save(mode=mode, custom_params=custom_params)
+
+    def orchestration_restore(self, context, saved_artifact_info, custom_params=None):
+        return self.operations.orchestration_restore(saved_artifact_info=saved_artifact_info,
+                                                     custom_params=custom_params)
 
     @GlobalLock.lock
     def update_firmware(self, context, remote_host, file_path):
-        return self.operations.update_firmware(remote_host, file_path)
+        """Left for supporting old network standard < v4.0"""
+        return self.operations.load_firmware(remote_host)
 
     @GlobalLock.lock
-    def restore(self, context, path, config_type, restore_method):
-        return self.operations.restore_configuration(path, config_type, restore_method)
+    def load_firmware(self, context, path, vrf_management_name=None):
+        return self.operations.load_firmware(path)
+
+    @GlobalLock.lock
+    def restore(self, context, path, configuration_type='running', restore_method='override', vrf_management_name=None):
+        return self.operations.restore(path=path,
+                                       configuration_type=configuration_type,
+                                       restore_method=restore_method,
+                                       vrf_management_name=vrf_management_name)
