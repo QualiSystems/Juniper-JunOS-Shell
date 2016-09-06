@@ -3,15 +3,16 @@ from unittest import TestCase, main
 import inject
 from cloudshell.networking.juniper.junos.junos_resource_driver import JunosResourceDriver
 from mock import MagicMock as Mock
+from mock import NonCallableMagicMock
 
 
 class TestJuniperDriver(TestCase):
 
     def setUp(self):
         inject.clear()
-        self._operations = Mock()
-        self._connectivity_operations = Mock()
-        self._autoload = Mock()
+        self._operations = NonCallableMagicMock()
+        self._connectivity_operations = NonCallableMagicMock()
+        self._autoload = NonCallableMagicMock()
         self._driver_instance = JunosResourceDriver(operations=self._operations, autoload=self._autoload,
                                                     connectivity_operations=self._connectivity_operations)
 
