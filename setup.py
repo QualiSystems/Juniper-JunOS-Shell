@@ -16,9 +16,10 @@ setup(
     author='QualiSystems',
     author_email='info@qualisystems.com',
     packages=find_packages(),
-	install_requires=required,
+    install_requires=required,
     tests_require=required_for_tests,
+    test_suite='nose.collector',
     version=version_from_file,
-    description='CloudShell networking Juniper-JunOs specific package',
-    include_package_data = True
+    description='QualiSystems Juniper JUNOS package',
+    include_package_data=True
 )
