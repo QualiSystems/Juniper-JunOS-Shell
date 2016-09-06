@@ -4,7 +4,7 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="http://schemas.qualisystems.com/ResourceManagement/ShellsConfigurationSchema.xsd">
     <ResourceTemplates>
-        <ResourceTemplate Name="Juniper JunOS Switch" Model="Juniper JunOS Switch" Driver="Generic Juniper JunOS Driver v2">
+        <ResourceTemplate Name="Juniper JunOS Switch" Model="Juniper JunOS Switch" Driver="Generic Juniper JunOS Driver v2.0.1">
             <Description>The networking Shell template will create a resource of this type in CloudShell. Once the Switch is modeled correctly in CloudShell it will be possible to use it in Sandboxes and for connectivity.</Description>
             <AutoLoad Enable="true">
                 <Description>Discovers the device structure and populate its attributes.</Description>
@@ -29,7 +29,7 @@
                 <Attribute Name="Power Management" Value="False" />
             </Attributes>
         </ResourceTemplate>
-        <ResourceTemplate Name="Juniper JunOS Router" Model="Juniper JunOS Router" Driver="Generic Juniper JunOS Driver v2">
+        <ResourceTemplate Name="Juniper JunOS Router" Model="Juniper JunOS Router" Driver="Generic Juniper JunOS Driver v2.0.1">
             <Description>The networking Shell template will create a resource of this type in CloudShell. Once the Router is modeled correctly in CloudShell it will be possible to use it in Sandboxes and for connectivity.</Description>
             <AutoLoad Enable="true">
                 <Description>Discovers the device structure and populate its attributes.</Description>
