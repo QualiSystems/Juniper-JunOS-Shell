@@ -325,7 +325,7 @@
           </AttributeValues>
           <ParentModels />
           <Drivers>
-            <DriverName>Generic Juniper JunOS Driver v2.0.1</DriverName>
+            <DriverName>Generic Juniper JunOS Driver v2</DriverName>
           </Drivers>
           <Scripts />
         </ResourceModel>
@@ -434,7 +434,7 @@
           </AttributeValues>
           <ParentModels />
           <Drivers>
-            <DriverName>Generic Juniper JunOS Driver v2.0.1</DriverName>
+            <DriverName>Generic Juniper JunOS Driver v2</DriverName>
           </Drivers>
           <Scripts />
         </ResourceModel>
