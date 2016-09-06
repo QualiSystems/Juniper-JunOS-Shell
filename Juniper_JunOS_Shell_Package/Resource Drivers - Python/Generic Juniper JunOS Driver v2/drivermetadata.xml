@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Driver Name="Generic Juniper JunOS Driver" Version="2.0.0" MainClass="junos_resource_driver.JunosResourceDriver" Description="Generic driver for all JunOS devices">
+<Driver Name="Generic Juniper JunOS Driver v2" Version="2.0.0" MainClass="junos_resource_driver.JunosResourceDriver" Description="Generic driver for all JunOS devices">
   <Layout>
     <Category Name="Hidden Commands">
 		<Command Name="shutdown" DisplayName="Shutdown" Tags="">
