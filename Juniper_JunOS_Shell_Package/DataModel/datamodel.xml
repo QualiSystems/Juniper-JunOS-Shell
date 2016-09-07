@@ -62,6 +62,16 @@
                 <Rule Name="Configuration"/>
             </Rules>
         </AttributeInfo>
+        <AttributeInfo xsi:type="LookupAttributeDetails" Name="Protocol Type" Type="Lookup" DefaultValue="Transparent" IsReadOnly="true" IsCommand="false">
+          <Rules Override="false">
+            <Rule Name="Setting" />
+            <Rule Name="Available For Abstract Resources" />
+            <Rule Name="Constant Capability" />
+          </Rules>
+          <LookupValues>
+            <LookupValue NumericValue="0" StringValue="Transparent"/>
+          </LookupValues>
+        </AttributeInfo>
         <AttributeInfo Name="Backup Type" Type="String" DefaultValue="" IsReadOnly="false">
             <Rules>
                 <Rule Name="Configuration"/>
@@ -310,7 +320,11 @@
               <AllowedValues />
             </AttachedAttribute>
             <AttachedAttribute Name="SNMP Version" IsOverridable="true" IsLocal="true">
-              <AllowedValues />
+              <AllowedValues>
+                <AllowedValue>v1</AllowedValue>
+                <AllowedValue>v2c</AllowedValue>
+                <AllowedValue>v3</AllowedValue>
+              </AllowedValues>
             </AttachedAttribute>
             <AttachedAttribute Name="SNMP Write Community" IsOverridable="true" IsLocal="true">
               <AllowedValues />
@@ -447,7 +461,11 @@
                 <AllowedValues/>
             </AttachedAttribute>
             <AttachedAttribute Name="SNMP Version" IsOverridable="true" IsLocal="true">
-                <AllowedValues/>
+              <AllowedValues>
+                <AllowedValue>v1</AllowedValue>
+                <AllowedValue>v2c</AllowedValue>
+                <AllowedValue>v3</AllowedValue>
+              </AllowedValues>
             </AttachedAttribute>
             <AttachedAttribute Name="SNMP Write Community" IsOverridable="true" IsLocal="true">
                 <AllowedValues/>

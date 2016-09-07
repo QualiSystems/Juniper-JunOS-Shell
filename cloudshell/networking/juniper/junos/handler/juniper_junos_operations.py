@@ -13,12 +13,13 @@ from cloudshell.shell.core.context_utils import get_attribute_by_name
 import inject
 import re
 from cloudshell.networking.operations.configuration_operations import ConfigurationOperations
+from cloudshell.networking.operations.state_operations import StateOperations
 from cloudshell.networking.operations.interfaces.firmware_operations_interface import FirmwareOperationsInterface
 from cloudshell.networking.operations.interfaces.power_operations_interface import PowerOperationsInterface
 from cloudshell.networking.operations.interfaces.run_command_interface import RunCommandInterface
 
 
-class JuniperJunosOperations(ConfigurationOperations, FirmwareOperationsInterface,
+class JuniperJunosOperations(ConfigurationOperations, StateOperations, FirmwareOperationsInterface,
                              PowerOperationsInterface, RunCommandInterface):
     SESSION_WAIT_TIMEOUT = 600
     DEFAULT_PROMPT = '[%>#]\s*$|[%>#]\s*\n'
@@ -43,6 +44,12 @@ class JuniperJunosOperations(ConfigurationOperations, FirmwareOperationsInterfac
     @property
     def cli_service(self):
         return self._cli_service or inject.instance(CLI_SERVICE)
+
+    @property
+    def cli(self):
+        """Required attribute in the network cloudshell.networking.operations.StateOperations interface"""
+        # todo(A.Piddubny): replace all .cli_service calls with .cli
+        return self.cli_service
 
     @property
     def context(self):

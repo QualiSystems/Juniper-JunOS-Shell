@@ -76,6 +76,12 @@ class JunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInter
     def run_custom_command(self, context, custom_command):
         return self.operations.run_custom_command(custom_command)
 
+    def send_custom_command(self, context, custom_command):
+        return self.operations.run_custom_command(custom_command)
+
+    def send_custom_config_command(self, context, custom_command):
+        return self.operations.run_custom_config_command(custom_command)
+
     def orchestration_save(self, context, mode, custom_params=None):
         if not mode:
             mode = 'shallow'
@@ -85,6 +91,10 @@ class JunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInter
     def orchestration_restore(self, context, saved_artifact_info, custom_params=None):
         return self.operations.orchestration_restore(saved_artifact_info=saved_artifact_info,
                                                      custom_params=custom_params)
+
+    def health_check(self, context):
+        """Performs device health check"""
+        return self.operations.health_check()
 
     @GlobalLock.lock
     def update_firmware(self, context, remote_host, file_path):

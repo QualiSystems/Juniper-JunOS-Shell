@@ -39,6 +39,14 @@ class TestJuniperDriver(TestCase):
         self._driver_instance.restore(Mock(), 'test', 'test', 'test')
         self.assertTrue(self._operations.restore.called)
 
+    def test_call_orchestration_save(self):
+        self._driver_instance.orchestration_save(Mock(), 'test', 'test')
+        self.assertTrue(self._operations.orchestration_save.called)
+
+    def test_call_orchestration_restore(self):
+        self._driver_instance.orchestration_restore(Mock(), 'test', 'test')
+        self.assertTrue(self._operations.orchestration_restore.called)
+
     def test_call_update_firmware(self):
         self._driver_instance.update_firmware(Mock(), 'test', 'test')
         self.assertTrue(self._operations.load_firmware.called)
@@ -50,6 +58,10 @@ class TestJuniperDriver(TestCase):
     def test_call_run_custom_command(self):
         self._driver_instance.run_custom_command(Mock(), 'test')
         self.assertTrue(self._operations.run_custom_command.called)
+
+    def test_call_health_check(self):
+        self._driver_instance.health_check(Mock())
+        self.assertTrue(self._operations.health_check.called)
 
     def test_call_run_custom_config_command(self):
         self._driver_instance.run_custom_config_command(Mock(), 'test')
