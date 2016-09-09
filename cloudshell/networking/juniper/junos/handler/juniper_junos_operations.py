@@ -12,15 +12,16 @@ from cloudshell.shell.core.config_utils import override_attributes_from_config
 from cloudshell.shell.core.context_utils import get_attribute_by_name
 import inject
 import re
-from cloudshell.networking.operations.interfaces.configuration_operations_interface import \
-    ConfigurationOperationsInterface
+from cloudshell.networking.operations.configuration_operations import ConfigurationOperations
+from cloudshell.networking.operations.state_operations import StateOperations
 from cloudshell.networking.operations.interfaces.firmware_operations_interface import FirmwareOperationsInterface
 from cloudshell.networking.operations.interfaces.power_operations_interface import PowerOperationsInterface
-from cloudshell.networking.operations.interfaces.send_command_interface import SendCommandInterface
+from cloudshell.networking.operations.interfaces.run_command_interface import RunCommandInterface
+from cloudshell.networking.networking_utils import UrlParser
 
 
-class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperationsInterface,
-                             PowerOperationsInterface, SendCommandInterface):
+class JuniperJunosOperations(ConfigurationOperations, StateOperations, FirmwareOperationsInterface,
+                             PowerOperationsInterface, RunCommandInterface):
     SESSION_WAIT_TIMEOUT = 600
     DEFAULT_PROMPT = '[%>#]\s*$|[%>#]\s*\n'
     ERROR_MAP = {}
@@ -46,6 +47,12 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
         return self._cli_service or inject.instance(CLI_SERVICE)
 
     @property
+    def cli(self):
+        """Required attribute in the network cloudshell.networking.operations.StateOperations interface"""
+        # todo(A.Piddubny): replace all .cli_service calls with .cli
+        return self.cli_service
+
+    @property
     def context(self):
         return self._context or inject.instance(CONTEXT)
 
@@ -61,6 +68,10 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
     def session(self):
         return self._session or inject.instance(SESSION)
 
+    @property
+    def resource_name(self):
+        pass
+
     def execute_command_map(self, command_map, send_command_func=None, **kwargs):
         if send_command_func:
             command_template_service.execute_command_map(command_map, send_command_func=send_command_func, **kwargs)
@@ -69,57 +80,96 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
                                                          send_command_func=self.cli_service.send_config_command,
                                                          **kwargs)
 
-    def restore_configuration(self, source_file, config_type='running', restore_method='override', vrf=None):
+    def restore(self, path, configuration_type=None, restore_method=None, vrf_management_name=None):
+        """Restore configuration on device from provided configuration file
 
-        if not source_file:
-            raise Exception(self.__class__.__name__, 'Config source cannot be empty')
-
-        if config_type.lower() != 'running':
-            raise Exception(self.__class__.__name__, 'Device does not support restoring in \"{}\" configuration type, '
-                                                     '\"running\" is only supported'.format(config_type or 'None'))
-
+        Restore configuration from local file system or ftp/tftp server into 'running-config' or 'startup-config'.
+        :param path: relative path to the file on the remote host tftp://server/sourcefile
+        :param configuration_type: the configuration type to restore (StartUp or Running)
+        :param restore_method: override current config or not
+        :param vrf_management_name: Virtual Routing and Forwarding management name
+        :return:
+        """
+        self._validate_configuration_type(configuration_type)
+        restore_method = restore_method or "override"
         restore_method = restore_method.lower()
+
         if restore_method == 'append':
             restore_type = 'merge'
         elif restore_method == 'override':
             restore_type = restore_method
         else:
-            raise Exception(self.__class__.__name__, 'Incorrect restore method')
+            raise Exception(self.__class__.__name__,
+                            "Restore method '{}' is wrong! Use 'Append' or 'Override'".format(restore_method))
 
-        self.execute_command_map({save_restore.RESTORE: [restore_type, source_file]})
+        self.execute_command_map({save_restore.RESTORE: [restore_type, path]})
         self.cli_service.commit()
 
-    def save_configuration(self, destination_host, source_filename='running', vrf=None):
+        if not path:
+            raise Exception(self.__class__.__name__, 'Config source cannot be empty')
+
+    def _validate_configuration_type(self, configuration_type):
+        """Validate configuration type, return it in lowercase
+
+        :param configuration_type:
+        :return: configuration type: "running"
+        :raises Exception if configuration type is not "Running"
+        """
+        configuration_type = configuration_type or "running"
+        configuration_type = configuration_type.lower()
+
+        if configuration_type != "running":
+            raise Exception(self.__class__.__name__, 'Device support only "running" configuration type')
+
+        return configuration_type
+
+    def save(self, folder_path=None, configuration_type=None, vrf_management_name=None):
+        """Backup 'startup-config' or 'running-config' from device to provided file_system [ftp|tftp]
+        Also possible to backup config to localhost
+        :param folder_path:  tftp/ftp server where file be saved
+        :param configuration_type: type of configuration that will be saved (StartUp or Running)
+        :param vrf_management_name: Virtual Routing and Forwarding management name
+        :return: status message / exception
+        """
         system_name = self.context.resource.fullname
         system_name = re.sub(r'[\.\s]', '_', system_name)
+        system_name = system_name[:23]
 
-        if source_filename.lower() != 'running':
-            raise Exception(self.__class__.__name__, 'Device does not support saving \"{}\" '
-                                                     'configuration type, \"running\" is only supported'.format(
-                source_filename or 'None'))
+        configuration_type = self._validate_configuration_type(configuration_type)
 
-        file_name = "{0}-{1}-{2}".format(system_name, source_filename, time.strftime("%d%m%y-%H%M%S", time.localtime()))
-        if not destination_host:
-            backup_location = get_attribute_by_name('Backup Location', context=self.context)
-            if backup_location:
-                destination_host = backup_location
-            else:
-                raise Exception(self.__class__.__name__, "Backup location or path is empty")
+        full_path = self.get_path(folder_path)
+        url = UrlParser.parse_url(full_path)
 
-        if destination_host.endswith('/'):
-            destination_host = destination_host[:-1]
-        full_path = "{0}/{1}".format(destination_host, file_name)
+        file_name = "{0}-{1}-{2}".format(system_name, configuration_type,
+                                         time.strftime("%d%m%y-%H%M%S", time.localtime()))
+
+        url[UrlParser.FILENAME] = file_name
+        full_path = UrlParser.build_url(url)
+
         self.logger.info("Save configuration to file {0}".format(full_path))
         self.execute_command_map({save_restore.SAVE: full_path})
+
         return full_path
 
-    def update_firmware(self, remote_host, file_path=None, size_of_firmware=0):
-        self.logger.info("Upgradeing firmware")
-        if not remote_host:
+    def load_firmware(self, path, vrf_management_name=None):
+        """Update firmware version on device by loading provided image, performs following steps:
+            1. Copy bin file from remote tftp server.
+            2. Clear in run config boot system section.
+            3. Set downloaded bin file as boot file and then reboot device.
+            4. Check if firmware was successfully installed.
+
+        :param path: full path to firmware file on ftp/tftp location
+        :param vrf_management_name: VRF Name
+        :return: status / exception
+        """
+        self.logger.info("Upgrading firmware")
+
+        if not path:
             raise Exception(self.__class__.__name__, "Firmware file path cannot be empty")
+
         expected_map = {r'\[[Yy]es,[Nn]o\]': lambda session: session.send_line('yes')}
         flow = OrderedDict()
-        flow[FIRMWARE_UPGRADE] = [remote_host]
+        flow[FIRMWARE_UPGRADE] = [path]
         flow[REBOOT] = []
         self.execute_command_map(flow, send_command_func=self.cli_service.send_command, expected_map=expected_map,
                                  error_map=self._error_map)
@@ -127,12 +177,12 @@ class JuniperJunosOperations(ConfigurationOperationsInterface, FirmwareOperation
         if session.session_type.lower() != 'console':
             self._wait_session_up(self.session)
 
-    def send_command(self, command):
+    def run_custom_command(self, command):
         if not command:
             raise Exception(self.__class__.__name__, "Command cannot be empty")
         return self.cli_service.send_command(command)
 
-    def send_config_command(self, command):
+    def run_custom_config_command(self, command):
         if not command:
             raise Exception(self.__class__.__name__, "Command cannot be empty")
         return self.cli_service.send_config_command(command)

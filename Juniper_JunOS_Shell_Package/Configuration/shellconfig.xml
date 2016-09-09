@@ -16,6 +16,9 @@
                 <Attribute Name="SNMP V3 User" Value="" />
                 <Attribute Name="SNMP V3 Password" Value="" />
                 <Attribute Name="SNMP V3 Private Key" Value="" />
+                <Attribute Name="Enable SNMP" Value="True" />
+                <Attribute Name="Disable SNMP" Value="False" />
+                <Attribute Name="CLI TCP Port" Value="0" />
                 <Attribute Name="CLI Connection Type" Value="Auto" />
                 <Attribute Name="User" Value="" />
                 <Attribute Name="Password" Value="" />
@@ -24,9 +27,13 @@
                 <Attribute Name="Console Port" Value="0" />
                 <Attribute Name="Console User" Value="" />
                 <Attribute Name="Console Password" Value="" />
+                <Attribute Name="Backup Type" Value="File System" />
+                <Attribute Name="Backup User" Value="" />
+                <Attribute Name="Backup Password" Value="" />
                 <Attribute Name="Backup Location" Value="" />
                 <Attribute Name="Sessions Concurrency Limit" Value="1" />
-                <Attribute Name="Power Management" Value="False" />
+                <Attribute Name="Power Management" Value="True" />
+                <Attribute Name="VRF Management Name" Value="" />
             </Attributes>
         </ResourceTemplate>
         <ResourceTemplate Name="Juniper JunOS Router" Model="Juniper JunOS Router" Driver="Generic Juniper JunOS Driver Version2">
@@ -41,6 +48,9 @@
                 <Attribute Name="SNMP V3 User" Value="" />
                 <Attribute Name="SNMP V3 Password" Value="" />
                 <Attribute Name="SNMP V3 Private Key" Value="" />
+                <Attribute Name="Enable SNMP" Value="True" />
+                <Attribute Name="Disable SNMP" Value="False" />
+                <Attribute Name="CLI TCP Port" Value="0" />
                 <Attribute Name="CLI Connection Type" Value="Auto" />
                 <Attribute Name="User" Value="" />
                 <Attribute Name="Password" Value="" />
@@ -49,9 +59,13 @@
                 <Attribute Name="Console Port" Value="0" />
                 <Attribute Name="Console User" Value="" />
                 <Attribute Name="Console Password" Value="" />
+                <Attribute Name="Backup Type" Value="" />
+                <Attribute Name="Backup User" Value="" />
+                <Attribute Name="Backup Password" Value="" />
                 <Attribute Name="Backup Location" Value="" />
                 <Attribute Name="Sessions Concurrency Limit" Value="1" />
                 <Attribute Name="Power Management" Value="False" />
+                <Attribute Name="VRF Management Name" Value="" />
             </Attributes>
         </ResourceTemplate>
     </ResourceTemplates>
