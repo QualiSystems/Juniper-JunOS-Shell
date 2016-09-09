@@ -1,4 +1,5 @@
 from unittest import TestCase, main
+import mock
 
 from cloudshell.networking.juniper.junos.command_templates.reboot import REBOOT
 from mock import MagicMock as Mock, call
@@ -50,6 +51,7 @@ class TestJuniperOperations(TestCase):
     def test_save_convert_resource_name(self):
         destination_host = 'ftp://testhost.com'
         config_type = 'running'
+        self._operations_instance.get_path = Mock(return_value='ftp://test_user:test_pass@testhost.com')
         self._context.resource.fullname = 'test.resource name'
         file_name = self._operations_instance.save(destination_host, config_type)
         self.assertTrue('test_resource_name' in file_name)
@@ -60,32 +62,19 @@ class TestJuniperOperations(TestCase):
         self._context.resource.fullname = 'test.resource name'
         self.assertRaises(Exception, self._operations_instance.save, destination_host, config_type)
 
-    def test_save_use_backup_location_attribute(self):
-        destination_host = 'ftp://testhost.com'
-        self._context.resource.attributes = {'Backup Location': destination_host}
-        self._context.resource.fullname = 'test.resource name'
-        config_type = 'running'
-        file_name = self._operations_instance.save(None, config_type)
-        self.assertTrue(destination_host in file_name)
-
-    def test_save_backup_location_none(self):
-        destination_host = ''
-        self._context.resource.attributes = {'Backup Location': destination_host}
-        self._context.resource.fullname = 'test.resource name'
-        config_type = 'running'
-        self.assertRaises(self._operations_instance.save, None, config_type)
-
     def test_save_backup_location_remove_slash(self):
         destination_host = 'ftp://testhost.com/test/'
         self._context.resource.fullname = 'test.resource name'
         config_type = 'running'
+        self._operations_instance.get_path = Mock(return_value='ftp://test_user:test_pass@testhost.com/test/')
         file_name = self._operations_instance.save(destination_host, config_type)
-        self.assertTrue('ftp://testhost.com/test/test_resource_name-running' in file_name)
+        self.assertTrue('ftp://test_user:test_pass@testhost.com/test/test_resource_name-running' in file_name)
 
     def test_save_call_command(self):
         destination_host = 'ftp://testhost.com/test/'
         self._context.resource.fullname = 'test.resource name'
         config_type = 'running'
+        self._operations_instance.get_path = Mock(return_value='ftp://test_user:test_pass@testhost.com/test/')
         file_name = self._operations_instance.save(destination_host, config_type)
         self._cli_service.send_config_command.assert_called_once_with(save_restore.SAVE.get_command(file_name),
                                                                       error_map=None, expected_map=None)

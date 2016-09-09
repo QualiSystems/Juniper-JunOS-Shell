@@ -17,6 +17,7 @@ from cloudshell.networking.operations.state_operations import StateOperations
 from cloudshell.networking.operations.interfaces.firmware_operations_interface import FirmwareOperationsInterface
 from cloudshell.networking.operations.interfaces.power_operations_interface import PowerOperationsInterface
 from cloudshell.networking.operations.interfaces.run_command_interface import RunCommandInterface
+from cloudshell.networking.networking_utils import UrlParser
 
 
 class JuniperJunosOperations(ConfigurationOperations, StateOperations, FirmwareOperationsInterface,
@@ -122,7 +123,7 @@ class JuniperJunosOperations(ConfigurationOperations, StateOperations, FirmwareO
 
         return configuration_type
 
-    def save(self, folder_path, configuration_type=None, vrf_management_name=None):
+    def save(self, folder_path=None, configuration_type=None, vrf_management_name=None):
         """Backup 'startup-config' or 'running-config' from device to provided file_system [ftp|tftp]
         Also possible to backup config to localhost
         :param folder_path:  tftp/ftp server where file be saved
@@ -136,21 +137,18 @@ class JuniperJunosOperations(ConfigurationOperations, StateOperations, FirmwareO
 
         configuration_type = self._validate_configuration_type(configuration_type)
 
+        full_path = self.get_path(folder_path)
+        url = UrlParser.parse_url(full_path)
+
         file_name = "{0}-{1}-{2}".format(system_name, configuration_type,
                                          time.strftime("%d%m%y-%H%M%S", time.localtime()))
 
-        if not folder_path:
-            backup_location = get_attribute_by_name('Backup Location', context=self.context)
-            if backup_location:
-                folder_path = backup_location
-            else:
-                raise Exception(self.__class__.__name__, "Backup location or path is empty")
+        url[UrlParser.FILENAME] = file_name
+        full_path = UrlParser.build_url(url)
 
-        if folder_path.endswith('/'):
-            folder_path = folder_path[:-1]
-        full_path = "{0}/{1}".format(folder_path, file_name)
         self.logger.info("Save configuration to file {0}".format(full_path))
         self.execute_command_map({save_restore.SAVE: full_path})
+
         return full_path
 
     def load_firmware(self, path, vrf_management_name=None):
