@@ -132,6 +132,7 @@ class JuniperJunosOperations(ConfigurationOperations, StateOperations, FirmwareO
         """
         system_name = self.context.resource.fullname
         system_name = re.sub(r'[\.\s]', '_', system_name)
+        system_name = system_name[:23]
 
         configuration_type = self._validate_configuration_type(configuration_type)
 
