@@ -14,11 +14,11 @@ from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterf
 from cloudshell.shell.core.driver_utils import GlobalLock
 
 
-class CiscoIOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInterface, GlobalLock):
-    SUPPORTED_OS = ["CAT[ -]?OS", "IOS[ -]?X?[E]?"]
+class JuniperJunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInterface, GlobalLock):
+    # SUPPORTED_OS = ["CAT[ -]?OS", "IOS[ -]?X?[E]?"]
 
     def __init__(self):
-        super(CiscoIOSResourceDriver, self).__init__()
+        super(JuniperJunosResourceDriver, self).__init__()
         self._cli = None
 
     def initialize(self, context):
