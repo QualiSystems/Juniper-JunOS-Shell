@@ -1,4 +1,10 @@
 from cloudshell.cli.command_template.command_template import CommandTemplate
+from cloudshell.networking.juniper.junos.command_templates.AddRemoveVlan import AddRemoveVlan
+
+from cloudshell.networking.juniper.junos.command_templates.juniper_errors import COMMON_ERRORS
+
+ACTION_MAP = {}
+ERROR_MAP = {}
 
 CREATE_VLAN = CommandTemplate('set vlans {0} vlan-id {1}', [r'.+', r'.+'], ['Wrong vlan name', 'Wrong vlan id'])
 CREATE_VLAN_QNQ = CommandTemplate('set vlans {0} dot1q-tunneling', [r'.+'], ['Wrong vlan name'])
@@ -13,7 +19,10 @@ DELETE_VLAN_ON_INTERFACE = CommandTemplate('delete interfaces {0} unit 0 family 
                                            [r'.+', r'.+'], ['Incorrect interface name', 'Incorrect vlan name'])
 
 DELETE_PORT_MODE_ON_INTERFACE = CommandTemplate('delete interfaces {0} unit 0 family ethernet-switching port-mode',
-                                                [r'.+'], ['Incorrect interface name'])
+                                                ACTIONS,
+                                              SAVE_RESTORE_ERRORS)
+
+ADD_REMOVE_VALN_NEW=AddRemoveVlan()
 
 DELETE_VLAN = CommandTemplate('delete vlans {0}', [r'.+'], ["Incorrect vlan name"])
 
