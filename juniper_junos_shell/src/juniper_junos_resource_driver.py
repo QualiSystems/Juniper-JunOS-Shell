@@ -1,11 +1,11 @@
-# from cloudshell.networking.cisco.ios.autoload.cisco_autoload_runner import CiscoIOSAutoloadRunner as AutoloadRunner
-# from cloudshell.networking.cisco.runners.cisco_configuration_runner import \
-#     CiscoConfigurationRunner as ConfigurationRunner
-# from cloudshell.networking.cisco.runners.cisco_connectivity_runner import \
-#     CiscoConnectivityRunner as ConnectivityRunner
-# from cloudshell.networking.cisco.runners.cisco_firmware_runner import CiscoFirmwareRunner as FirmwareRunner
-# from cloudshell.networking.cisco.runners.cisco_run_command_runner import CiscoRunCommandRunner as CommandRunner
-# from cloudshell.networking.cisco.runners.cisco_state_runner import CiscoStateRunner as StateRunner
+from cloudshell.networking.juniper.runners.juniper_connectiviry_runner import \
+    JuniperConnectivityRunner as ConnectivityRunner
+from cloudshell.networking.juniper.runners.juniper_configuration_runner import \
+    JuniperConfigurationRunner as ConfigurationRunner
+from cloudshell.networking.juniper.runners.juniper_autoload_runner import JuniperAutoloadRunner as AutoloadRunner
+from cloudshell.networking.juniper.runners.juniper_firmware_runner import JuniperFirmwareRunner as FirmwareRunner
+from cloudshell.networking.juniper.runners.juniper_run_command_runner import JuniperRunCommandRunner as CommandRunner
+from cloudshell.networking.juniper.runners.juniper_state_runner import JuniperStateRunner as StateRunner
 from cloudshell.shell.core.context_utils import get_attribute_by_name
 from cloudshell.networking.devices.driver_helper import get_logger_with_thread_id, get_api, get_cli
 from cloudshell.shell.core.context import ResourceCommandContext
@@ -44,7 +44,8 @@ class JuniperJunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
         """
 
         logger = get_logger_with_thread_id(context)
-        api = get_api(context)
+        # api = get_api(context)
+        api = context
         connectivity_operations = ConnectivityRunner(cli=self._cli, context=context, api=api, logger=logger)
         logger.info('Start applying connectivity changes, request is: {0}'.format(str(request)))
         result = connectivity_operations.apply_connectivity_changes(request=request)
