@@ -15,7 +15,7 @@ from cloudshell.shell.core.driver_utils import GlobalLock
 
 
 class JuniperJunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInterface, GlobalLock):
-    # SUPPORTED_OS = ["CAT[ -]?OS", "IOS[ -]?X?[E]?"]
+    SUPPORTED_OS = [r'[Jj]uniper']
 
     def __init__(self):
         super(JuniperJunosResourceDriver, self).__init__()
@@ -44,8 +44,7 @@ class JuniperJunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
         """
 
         logger = get_logger_with_thread_id(context)
-        # api = get_api(context)
-        api = context
+        api = get_api(context)
         connectivity_operations = ConnectivityRunner(cli=self._cli, context=context, api=api, logger=logger)
         logger.info('Start applying connectivity changes, request is: {0}'.format(str(request)))
         result = connectivity_operations.apply_connectivity_changes(request=request)
