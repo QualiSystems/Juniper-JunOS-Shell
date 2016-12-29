@@ -14,11 +14,11 @@ from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterf
 from cloudshell.shell.core.driver_utils import GlobalLock
 
 
-class JuniperJunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInterface, GlobalLock):
+class JuniperJunOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInterface, GlobalLock):
     SUPPORTED_OS = [r'[Jj]uniper']
 
     def __init__(self):
-        super(JuniperJunosResourceDriver, self).__init__()
+        super(JuniperJunOSResourceDriver, self).__init__()
         self._cli = None
 
     def initialize(self, context):
@@ -55,7 +55,7 @@ class JuniperJunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
         return result
 
     @GlobalLock.lock
-    def restore(self, context, path, configuration_type='running', restore_method='override', vrf_management_name=None):
+    def restore(self, context, path, configuration_type, restore_method, vrf_management_name):
         """Restore selected file to the provided destination
 
         :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
@@ -84,7 +84,7 @@ class JuniperJunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
                                          vrf_management_name=vrf_management_name)
         logger.info('Restore completed')
 
-    def save(self, context, folder_path='', configuration_type='running', vrf_management_name=None):
+    def save(self, context, folder_path, configuration_type, vrf_management_name):
         """Save selected file to the provided destination
 
         :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
@@ -110,7 +110,7 @@ class JuniperJunosResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
         logger.info('Save completed')
         return response
 
-    def orchestration_save(self, context, mode="shallow", custom_params=None):
+    def orchestration_save(self, context, mode='shallow', custom_params=None):
         """
 
         :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
