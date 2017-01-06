@@ -1,3 +1,9 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+
+from cloudshell.networking.devices.driver_helper import get_logger_with_thread_id, get_api, get_cli
+from cloudshell.networking.standards.networking.configuration_attributes_structure import GenericNetworkingResource
 from cloudshell.networking.juniper.runners.juniper_connectiviry_runner import \
     JuniperConnectivityRunner as ConnectivityRunner
 from cloudshell.networking.juniper.runners.juniper_configuration_runner import \
@@ -6,16 +12,15 @@ from cloudshell.networking.juniper.runners.juniper_autoload_runner import Junipe
 from cloudshell.networking.juniper.runners.juniper_firmware_runner import JuniperFirmwareRunner as FirmwareRunner
 from cloudshell.networking.juniper.runners.juniper_run_command_runner import JuniperRunCommandRunner as CommandRunner
 from cloudshell.networking.juniper.runners.juniper_state_runner import JuniperStateRunner as StateRunner
-from cloudshell.shell.core.context_utils import get_attribute_by_name
-from cloudshell.networking.devices.driver_helper import get_logger_with_thread_id, get_api, get_cli
-from cloudshell.shell.core.context import ResourceCommandContext
 from cloudshell.networking.networking_resource_driver_interface import NetworkingResourceDriverInterface
-from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
+from cloudshell.shell.core.context import ResourceCommandContext
 from cloudshell.shell.core.driver_utils import GlobalLock
+from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
 
 
 class JuniperJunOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInterface, GlobalLock):
     SUPPORTED_OS = [r'[Jj]uniper']
+    SHELL_NAME = "JuniperJunOSShell"
 
     def __init__(self):
         super(JuniperJunOSResourceDriver, self).__init__()
@@ -27,12 +32,103 @@ class JuniperJunOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
         :type context: cloudshell.shell.core.context.driver_context.InitCommandContext
         """
 
-        session_pool_size = int(get_attribute_by_name(context=context, attribute_name='Sessions Concurrency Limit'))
+        resource_config = GenericNetworkingResource(shell_name=self.SHELL_NAME).create_from_context(context=context)
+
+        session_pool_size = int(resource_config.sessions_concurrency_limit)
         self._cli = get_cli(session_pool_size)
         return 'Finished initializing'
 
-    def cleanup(self):
-        pass
+    @GlobalLock.lock
+    def get_inventory(self, context):
+        """Return device structure with all standard attributes
+
+        :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
+        :return: response
+        :rtype: str
+        """
+
+        logger = get_logger_with_thread_id(context)
+        api = get_api(context)
+
+        resource_config = GenericNetworkingResource(shell_name=self.SHELL_NAME).create_from_context(context=context)
+
+        autoload_operations = AutoloadRunner(cli=self._cli,
+                                             logger=logger,
+                                             resource_config=resource_config,
+                                             api=api,
+                                             supported_os=self.SUPPORTED_OS)
+        logger.info('Autoload started')
+        response = autoload_operations.discover()
+        logger.info('Autoload completed')
+        return response
+
+    def run_custom_command(self, context, custom_command):
+        """Send custom command
+
+        :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
+        :return: result
+        :rtype: str
+        """
+
+        logger = get_logger_with_thread_id(context)
+        api = get_api(context)
+
+        resource_config = GenericNetworkingResource(shell_name=self.SHELL_NAME).create_from_context(context=context)
+
+        send_command_operations = CommandRunner(cli=self._cli, logger=logger, resource_config=resource_config, api=api)
+        response = send_command_operations.run_custom_command(custom_command=custom_command)
+        return response
+
+    def run_custom_config_command(self, context, custom_command):
+        """Send custom command in configuration mode
+
+        :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
+        :return: result
+        :rtype: str
+        """
+
+        logger = get_logger_with_thread_id(context)
+        api = get_api(context)
+
+        resource_config = GenericNetworkingResource(shell_name=self.SHELL_NAME).create_from_context(context=context)
+
+        send_command_operations = CommandRunner(cli=self._cli, logger=logger, resource_config=resource_config, api=api)
+        result_str = send_command_operations.run_custom_config_command(custom_command=custom_command)
+        return result_str
+
+    def send_custom_command(self, context, custom_command):
+        """Send custom command in configuration mode
+
+        :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
+        :return: result
+        :rtype: str
+        """
+
+        logger = get_logger_with_thread_id(context)
+        api = get_api(context)
+
+        resource_config = GenericNetworkingResource(shell_name=self.SHELL_NAME).create_from_context(context=context)
+
+        send_command_operations = CommandRunner(cli=self._cli, logger=logger, resource_config=resource_config, api=api)
+        response = send_command_operations.run_custom_command(custom_command=custom_command)
+        return response
+
+    def send_custom_config_command(self, context, custom_command):
+        """Send custom command in configuration mode
+
+        :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
+        :return: result
+        :rtype: str
+        """
+
+        logger = get_logger_with_thread_id(context)
+        api = get_api(context)
+
+        resource_config = GenericNetworkingResource(shell_name=self.SHELL_NAME).create_from_context(context=context)
+
+        send_command_operations = CommandRunner(cli=self._cli, logger=logger, resource_config=resource_config, api=api)
+        result_str = send_command_operations.run_custom_config_command(custom_command=custom_command)
+        return result_str
 
     def ApplyConnectivityChanges(self, context, request):
         """
@@ -45,46 +141,18 @@ class JuniperJunOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
 
         logger = get_logger_with_thread_id(context)
         api = get_api(context)
-        connectivity_operations = ConnectivityRunner(cli=self._cli, context=context, api=api, logger=logger)
+
+        resource_config = GenericNetworkingResource(shell_name=self.SHELL_NAME).create_from_context(context=context)
+
+        connectivity_operations = ConnectivityRunner(cli=self._cli, resource_config=resource_config, api=api,
+                                                     logger=logger)
         logger.info('Start applying connectivity changes, request is: {0}'.format(str(request)))
         result = connectivity_operations.apply_connectivity_changes(request=request)
-        logger.info('Finished applying connectivity changes, response is: {0}'.format(str(
-            result)))
+        logger.info('Finished applying connectivity changes, response is: {0}'.format(str(result)))
         logger.info('Apply Connectivity changes completed')
-
         return result
 
-    @GlobalLock.lock
-    def restore(self, context, path, configuration_type, restore_method, vrf_management_name):
-        """Restore selected file to the provided destination
-
-        :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
-        :param path: source config file
-        :param configuration_type: running or startup configs
-        :param restore_method: append or override methods
-        :param vrf_management_name: VRF management Name
-        """
-
-        if not configuration_type:
-            configuration_type = 'running'
-
-        if not restore_method:
-            restore_method = 'override'
-
-        if not vrf_management_name:
-            vrf_management_name = get_attribute_by_name(context=context, attribute_name='VRF Management Name')
-
-        logger = get_logger_with_thread_id(context)
-        api = get_api(context)
-
-        configuration_operations = ConfigurationRunner(logger=logger, api=api, cli=self._cli, context=context)
-        logger.info('Restore started')
-        configuration_operations.restore(path=path, restore_method=restore_method,
-                                         configuration_type=configuration_type,
-                                         vrf_management_name=vrf_management_name)
-        logger.info('Restore completed')
-
-    def save(self, context, folder_path, configuration_type, vrf_management_name):
+    def save(self, context, folder_path, configuration_type, vrf_management_name=None):
         """Save selected file to the provided destination
 
         :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
@@ -94,21 +162,61 @@ class JuniperJunOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
         :return str saved configuration file name:
         """
 
+        logger = get_logger_with_thread_id(context)
+        api = get_api(context)
+
+        resource_config = GenericNetworkingResource(shell_name=self.SHELL_NAME).create_from_context(context=context)
+
         if not configuration_type:
             configuration_type = 'running'
 
         if not vrf_management_name:
-            vrf_management_name = get_attribute_by_name(context=context, attribute_name='VRF Management Name')
+            vrf_management_name = resource_config.vrf_management_name
 
-        logger = get_logger_with_thread_id(context)
-        api = get_api(context)
-
-        configuration_operations = ConfigurationRunner(logger=logger, cli=self._cli, context=context, api=api)
+        configuration_operations = ConfigurationRunner(cli=self._cli,
+                                                       logger=logger,
+                                                       resource_config=resource_config,
+                                                       api=api)
         logger.info('Save started')
         response = configuration_operations.save(folder_path=folder_path, configuration_type=configuration_type,
                                                  vrf_management_name=vrf_management_name)
         logger.info('Save completed')
         return response
+
+    @GlobalLock.lock
+    def restore(self, context, path, configuration_type, restore_method, vrf_management_name=None):
+        """Restore selected file to the provided destination
+
+        :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
+        :param path: source config file
+        :param configuration_type: running or startup configs
+        :param restore_method: append or override methods
+        :param vrf_management_name: VRF management Name
+        """
+
+        logger = get_logger_with_thread_id(context)
+        api = get_api(context)
+
+        resource_config = GenericNetworkingResource(shell_name=self.SHELL_NAME).create_from_context(context=context)
+
+        if not configuration_type:
+            configuration_type = 'running'
+
+        if not restore_method:
+            restore_method = 'override'
+
+        if not vrf_management_name:
+            vrf_management_name = resource_config.vrf_management_name
+
+        configuration_operations = ConfigurationRunner(cli=self._cli,
+                                                       logger=logger,
+                                                       resource_config=resource_config,
+                                                       api=api)
+        logger.info('Restore started')
+        configuration_operations.restore(path=path, restore_method=restore_method,
+                                         configuration_type=configuration_type,
+                                         vrf_management_name=vrf_management_name)
+        logger.info('Restore completed')
 
     def orchestration_save(self, context, mode='shallow', custom_params=None):
         """
@@ -125,7 +233,13 @@ class JuniperJunOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
         logger = get_logger_with_thread_id(context)
         api = get_api(context)
 
-        configuration_operations = ConfigurationRunner(logger=logger, api=api, cli=self._cli, context=context)
+        resource_config = GenericNetworkingResource(shell_name=self.SHELL_NAME).create_from_context(context=context)
+
+        configuration_operations = ConfigurationRunner(cli=self._cli,
+                                                       logger=logger,
+                                                       resource_config=resource_config,
+                                                       api=api)
+
         logger.info('Orchestration save started')
         response = configuration_operations.orchestration_save(mode=mode, custom_params=custom_params)
         logger.info('Orchestration save completed')
@@ -142,29 +256,17 @@ class JuniperJunOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
         logger = get_logger_with_thread_id(context)
         api = get_api(context)
 
-        configuration_operations = ConfigurationRunner(logger=logger, api=api, cli=self._cli, context=context)
+        resource_config = GenericNetworkingResource(shell_name=self.SHELL_NAME).create_from_context(context=context)
+
+        configuration_operations = ConfigurationRunner(cli=self._cli,
+                                                       logger=logger,
+                                                       resource_config=resource_config,
+                                                       api=api)
+
         logger.info('Orchestration restore started')
         configuration_operations.orchestration_restore(saved_artifact_info=saved_artifact_info,
                                                        custom_params=custom_params)
         logger.info('Orchestration restore completed')
-
-    @GlobalLock.lock
-    def get_inventory(self, context):
-        """Return device structure with all standard attributes
-
-        :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
-        :return: response
-        :rtype: str
-        """
-
-        logger = get_logger_with_thread_id(context)
-        api = get_api(context)
-        autoload_operations = AutoloadRunner(cli=self._cli, logger=logger, context=context, api=api,
-                                             supported_os=self.SUPPORTED_OS)
-        logger.info('Autoload started')
-        response = autoload_operations.discover()
-        logger.info('Autoload completed')
-        return response
 
     @GlobalLock.lock
     def load_firmware(self, context, path, vrf_management_name=None):
@@ -177,54 +279,16 @@ class JuniperJunOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
 
         logger = get_logger_with_thread_id(context)
         api = get_api(context)
+
+        resource_config = GenericNetworkingResource(shell_name=self.SHELL_NAME).create_from_context(context=context)
+
         if not vrf_management_name:
-            vrf_management_name = get_attribute_by_name(context=context, attribute_name='VRF Management Name')
+            vrf_management_name = resource_config.vrf_management_name
 
         logger.info('Start Load Firmware')
-        firmware_operations = FirmwareRunner(cli=self._cli, logger=logger, context=context, api=api)
+        firmware_operations = FirmwareRunner(cli=self._cli, logger=logger, resource_config=resource_config, api=api)
         response = firmware_operations.load_firmware(path=path, vrf_management_name=vrf_management_name)
         logger.info('Finish Load Firmware: {}'.format(response))
-
-    def run_custom_command(self, context, custom_command):
-        """Send custom command
-
-        :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
-        :return: result
-        :rtype: str
-        """
-
-        logger = get_logger_with_thread_id(context)
-        api = get_api(context)
-        send_command_operations = CommandRunner(cli=self._cli, logger=logger, context=context, api=api)
-        response = send_command_operations.run_custom_command(custom_command=custom_command)
-        return response
-
-    def health_check(self, context):
-        """Performs device health check
-
-        :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
-        :return: Success or Error message
-        :rtype: str
-        """
-
-        logger = get_logger_with_thread_id(context)
-        api = get_api(context)
-        state_operations = StateRunner(cli=self._cli, logger=logger, api=api, context=context)
-        return state_operations.health_check()
-
-    def run_custom_config_command(self, context, custom_command):
-        """Send custom command in configuration mode
-
-        :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
-        :return: result
-        :rtype: str
-        """
-
-        logger = get_logger_with_thread_id(context)
-        api = get_api(context)
-        send_command_operations = CommandRunner(cli=self._cli, logger=logger, context=context, api=api)
-        result_str = send_command_operations.run_custom_config_command(custom_command=custom_command)
-        return result_str
 
     @GlobalLock.lock
     def update_firmware(self, context, remote_host, file_path):
@@ -238,40 +302,34 @@ class JuniperJunOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
 
         logger = get_logger_with_thread_id(context)
         api = get_api(context)
-        vrf_management_name = get_attribute_by_name(context=context, attribute_name='VRF Management Name')
+
+        resource_config = GenericNetworkingResource(shell_name=self.SHELL_NAME).create_from_context(context=context)
+
+        vrf_management_name = resource_config.vrf_management_name
 
         logger.info('Start Update Firmware')
-        firmware_operations = FirmwareRunner(cli=self._cli, logger=logger, context=context, api=api)
+        firmware_operations = FirmwareRunner(cli=self._cli, logger=logger, resource_config=resource_config, api=api)
         response = firmware_operations.load_firmware(path=remote_host, vrf_management_name=vrf_management_name)
         logger.info('Finish Update Firmware: {}'.format(response))
 
-    def send_custom_command(self, context, custom_command):
-        """Send custom command in configuration mode
+    def health_check(self, context):
+        """Performs device health check
 
         :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
-        :return: result
+        :return: Success or Error message
         :rtype: str
         """
 
         logger = get_logger_with_thread_id(context)
         api = get_api(context)
-        send_command_operations = CommandRunner(cli=self._cli, logger=logger, context=context, api=api)
-        response = send_command_operations.run_custom_command(custom_command=custom_command)
-        return response
 
-    def send_custom_config_command(self, context, custom_command):
-        """Send custom command in configuration mode
+        resource_config = GenericNetworkingResource(shell_name=self.SHELL_NAME).create_from_context(context=context)
 
-        :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
-        :return: result
-        :rtype: str
-        """
+        state_operations = StateRunner(cli=self._cli, logger=logger, api=api, resource_config=resource_config)
+        return state_operations.health_check()
 
-        logger = get_logger_with_thread_id(context)
-        api = get_api(context)
-        send_command_operations = CommandRunner(cli=self._cli, logger=logger, context=context, api=api)
-        result_str = send_command_operations.run_custom_config_command(custom_command=custom_command)
-        return result_str
+    def cleanup(self):
+        pass
 
     def shutdown(self, context):
         pass
