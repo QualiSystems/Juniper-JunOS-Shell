@@ -14,11 +14,11 @@ from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterf
 from cloudshell.shell.core.driver_utils import GlobalLock
 
 
-class JuniperJunOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInterface, GlobalLock):
+class JuniperJunOSFirewallResourceDriver(ResourceDriverInterface, NetworkingResourceDriverInterface, GlobalLock):
     SUPPORTED_OS = [r'[Jj]uniper']
 
     def __init__(self):
-        super(JuniperJunOSResourceDriver, self).__init__()
+        super(JuniperJunOSFirewallResourceDriver, self).__init__()
         self._cli = None
 
     def initialize(self, context):
@@ -36,23 +36,13 @@ class JuniperJunOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
 
     def ApplyConnectivityChanges(self, context, request):
         """
-        Create vlan and add or remove it to/from network interface
-
+        Unsupported by firewall
         :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
         :param str request: request json
         :return:
         """
 
-        logger = get_logger_with_thread_id(context)
-        api = get_api(context)
-        connectivity_operations = ConnectivityRunner(cli=self._cli, context=context, api=api, logger=logger)
-        logger.info('Start applying connectivity changes, request is: {0}'.format(str(request)))
-        result = connectivity_operations.apply_connectivity_changes(request=request)
-        logger.info('Finished applying connectivity changes, response is: {0}'.format(str(
-            result)))
-        logger.info('Apply Connectivity changes completed')
-
-        return result
+        raise Exception(self.__class__.__name__, 'Unsupported command')
 
     @GlobalLock.lock
     def restore(self, context, path, configuration_type, restore_method, vrf_management_name):
@@ -110,7 +100,7 @@ class JuniperJunOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
         logger.info('Save completed')
         return response
 
-    def orchestration_save(self, context, mode='shallow', custom_params=None):
+    def orchestration_save(self, context, mode, custom_params):
         """
 
         :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
@@ -131,7 +121,7 @@ class JuniperJunOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
         logger.info('Orchestration save completed')
         return response
 
-    def orchestration_restore(self, context, saved_artifact_info, custom_params=None):
+    def orchestration_restore(self, context, saved_artifact_info, custom_params):
         """
 
         :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
@@ -167,7 +157,7 @@ class JuniperJunOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
         return response
 
     @GlobalLock.lock
-    def load_firmware(self, context, path, vrf_management_name=None):
+    def load_firmware(self, context, path, vrf_management_name):
         """Upload and updates firmware on the resource
 
         :param ResourceCommandContext context: ResourceCommandContext object with all Resource Attributes inside
@@ -274,4 +264,12 @@ class JuniperJunOSResourceDriver(ResourceDriverInterface, NetworkingResourceDriv
         return result_str
 
     def shutdown(self, context):
-        pass
+        """
+        Request power off
+        :param context:
+        :return:
+        """
+        logger = get_logger_with_thread_id(context)
+        api = get_api(context)
+        state_operations = StateRunner(cli=self._cli, logger=logger, api=api, context=context)
+        return state_operations.shutdown()
