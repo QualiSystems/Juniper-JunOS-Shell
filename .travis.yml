@@ -16,6 +16,8 @@ install:
     - pip install coveralls
 
 script:
+    - export PYTHONPATH=juniper_junos_shell/Resource\ Drivers\ -\ Python/Generic\ Juniper\ JunOS\ Firewall\ Driver\ Version1/
+    - export PYTHONPATH=$PYTHONPATH:juniper_junos_shell/Resource\ Drivers\ -\ Python/Generic\ Juniper\ JunOS\ Driver\ Version3/
     - nosetests --with-coverage --cover-package=juniper_junos_shell tests
 
 after_success:
