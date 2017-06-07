@@ -16,7 +16,8 @@ install:
     - pip install coveralls
 
 script:
-    - nosetests --with-coverage --cover-package=cloudshell.networking.juniper.junops tests
+#    - nosetests --with-coverage --cover-package=cloudshell.networking.juniper.junops tests
+    - nosetests --with-coverage tests
 
 after_success:
-#    - coveralls
+    - coveralls
